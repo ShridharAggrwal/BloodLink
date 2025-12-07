@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { generateToken, getExpiryDate } = require('../utils/helpers');
 const { sendVerificationEmail } = require('../services/emailServiceSendGrid');
-const { geocodeAddress } = require('../services/geocodeService');
 
 // Register User
 router.post('/register', async (req, res) => {
@@ -22,32 +21,15 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Enforce coordinates - either geocode address or use manual coordinates
-    let finalLatitude = null;
-    let finalLongitude = null;
-
-    if (address) {
-      // Try geocoding the address
-      const coords = await geocodeAddress(address);
-      if (coords) {
-        finalLatitude = coords.lat;
-        finalLongitude = coords.lng;
-        console.log('✅ Address geocoded successfully');
-      }
+    // Get coordinates from browser navigator or manual input
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        error: 'Location coordinates are required. Please allow location access or enter manually.'
+      });
     }
 
-    // If geocoding failed or no address, check for manual coordinates
-    if (!finalLatitude || !finalLongitude) {
-      if (latitude && longitude) {
-        finalLatitude = parseFloat(latitude);
-        finalLongitude = parseFloat(longitude);
-        console.log('✅ Using manual coordinates');
-      } else {
-        return res.status(400).json({ 
-          error: 'Address geocoding failed. Please provide a valid address or enter latitude and longitude manually.' 
-        });
-      }
-    }
+    const finalLatitude = parseFloat(latitude);
+    const finalLongitude = parseFloat(longitude);
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -63,13 +45,13 @@ router.post('/register', async (req, res) => {
     // Create verification token
     const verificationToken = generateToken();
     const expiryDate = getExpiryDate(1);
-    
+
     await pool.query(
       `INSERT INTO email_verifications (user_id, user_type, token, expires_at)
        VALUES ($1, 'user', $2, $3)`,
       [result.rows[0].id, verificationToken, expiryDate]
     );
-    
+
     console.log('Verification token created:', verificationToken);
     console.log('Token expires at:', expiryDate);
 
@@ -105,39 +87,22 @@ router.post('/register/ngo/:token', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired registration link' });
     }
 
-    // Enforce coordinates - either geocode address or use manual coordinates
-    let finalLatitude = null;
-    let finalLongitude = null;
-
-    if (address) {
-      // Try geocoding the address
-      const coords = await geocodeAddress(address);
-      if (coords) {
-        finalLatitude = coords.lat;
-        finalLongitude = coords.lng;
-        console.log('✅ NGO address geocoded successfully');
-      }
+    // Get coordinates from browser navigator or manual input
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        error: 'Location coordinates are required. Please allow location access or enter manually.'
+      });
     }
 
-    // If geocoding failed or no address, check for manual coordinates
-    if (!finalLatitude || !finalLongitude) {
-      if (latitude && longitude) {
-        finalLatitude = parseFloat(latitude);
-        finalLongitude = parseFloat(longitude);
-        console.log('✅ Using manual coordinates for NGO');
-      } else {
-        return res.status(400).json({ 
-          error: 'Address geocoding failed. Please provide a valid address or enter latitude and longitude manually.' 
-        });
-      }
-    }
+    const finalLatitude = parseFloat(latitude);
+    const finalLongitude = parseFloat(longitude);
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert NGO
+    // Insert NGO (auto-verified since created by admin)
     const result = await pool.query(
-      `INSERT INTO ngos (name, owner_name, email, password, age, gender, address, latitude, longitude, volunteer_count, is_approved)
+      `INSERT INTO ngos (name, owner_name, email, password, age, gender, address, latitude, longitude, volunteer_count, is_verified)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, TRUE)
        RETURNING id, name, email`,
       [name, owner_name, email, hashedPassword, age, gender, address, finalLatitude, finalLongitude, volunteer_count || 0]
@@ -184,39 +149,22 @@ router.post('/register/blood-bank/:token', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired registration link' });
     }
 
-    // Enforce coordinates - either geocode address or use manual coordinates
-    let finalLatitude = null;
-    let finalLongitude = null;
-
-    if (address) {
-      // Try geocoding the address
-      const coords = await geocodeAddress(address);
-      if (coords) {
-        finalLatitude = coords.lat;
-        finalLongitude = coords.lng;
-        console.log('✅ Blood Bank address geocoded successfully');
-      }
+    // Get coordinates from browser navigator or manual input
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        error: 'Location coordinates are required. Please allow location access or enter manually.'
+      });
     }
 
-    // If geocoding failed or no address, check for manual coordinates
-    if (!finalLatitude || !finalLongitude) {
-      if (latitude && longitude) {
-        finalLatitude = parseFloat(latitude);
-        finalLongitude = parseFloat(longitude);
-        console.log('✅ Using manual coordinates for Blood Bank');
-      } else {
-        return res.status(400).json({ 
-          error: 'Address geocoding failed. Please provide a valid address or enter latitude and longitude manually.' 
-        });
-      }
-    }
+    const finalLatitude = parseFloat(latitude);
+    const finalLongitude = parseFloat(longitude);
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert Blood Bank
+    // Insert Blood Bank (auto-verified since created by admin)
     const result = await pool.query(
-      `INSERT INTO blood_banks (name, email, password, contact_info, address, latitude, longitude, is_approved)
+      `INSERT INTO blood_banks (name, email, password, contact_info, address, latitude, longitude, is_verified)
        VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
        RETURNING id, name, email`,
       [name, email, hashedPassword, contact_info, address, finalLatitude, finalLongitude]
@@ -302,28 +250,26 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password, role } = req.body;
 
-    let table, extraFields = '';
+    let table, query;
     switch (role) {
       case 'admin':
         table = 'admins';
+        query = `SELECT id, name, email, password, age, gender, address, latitude, longitude FROM ${table} WHERE email = $1`;
         break;
       case 'ngo':
         table = 'ngos';
-        extraFields = ', is_approved';
+        query = `SELECT id, name, owner_name, email, password, age, gender, address, latitude, longitude, volunteer_count, status FROM ${table} WHERE email = $1`;
         break;
       case 'blood_bank':
         table = 'blood_banks';
-        extraFields = ', is_approved';
+        query = `SELECT id, name, email, password, contact_info, address, latitude, longitude, status FROM ${table} WHERE email = $1`;
         break;
       default:
         table = 'users';
-        extraFields = ', is_verified';
+        query = `SELECT id, name, email, password, phone, gender, blood_group, address, latitude, longitude, is_verified, status FROM ${table} WHERE email = $1`;
     }
 
-    const result = await pool.query(
-      `SELECT id, name, email, password${extraFields} FROM ${table} WHERE email = $1`,
-      [email]
-    );
+    const result = await pool.query(query, [email]);
 
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -337,14 +283,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Check verification for users
+    // Check verification for users only
     if (role === 'user' && !user.is_verified) {
       return res.status(401).json({ error: 'Please verify your email first' });
     }
 
-    // Check approval for NGO and Blood Bank
-    if ((role === 'ngo' || role === 'blood_bank') && !user.is_approved) {
-      return res.status(401).json({ error: 'Your account is pending approval' });
+    // Check if account is suspended (for all user types except admin)
+    if (role !== 'admin' && user.status === 'suspended') {
+      return res.status(403).json({ error: 'Your account has been suspended. Please contact support.' });
     }
 
     // Generate token
@@ -356,7 +302,7 @@ router.post('/login', async (req, res) => {
 
     delete user.password;
     delete user.is_verified;
-    delete user.is_approved;
+    delete user.status;
 
     res.json({
       message: 'Login successful',

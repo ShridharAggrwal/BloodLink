@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
-const { geocodeAddress } = require('../services/geocodeService');
 const { sendBloodRequestAlert } = require('../services/socketService');
 
 // Haversine formula to calculate distance in meters
@@ -10,31 +9,30 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371000; // Earth's radius in meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
 // Create blood request
 router.post('/', auth, async (req, res) => {
   try {
-    const { blood_group, units_needed, address } = req.body;
+    const { blood_group, units_needed, address, latitude, longitude } = req.body;
     const { id, role } = req.user;
 
-    // Geocode the request address
+    // Validate required fields
     if (!address) {
       return res.status(400).json({ error: 'Address is required' });
     }
 
-    let latitude = null, longitude = null;
-    const coords = await geocodeAddress(address);
-    if (coords) {
-      latitude = coords.lat;
-      longitude = coords.lng;
+    if (!latitude || !longitude) {
+      return res.status(400).json({ error: 'Location coordinates are required' });
     }
-    // Note: Request will be created even if geocoding fails, but location-based alerts won't work
+
+    const finalLatitude = parseFloat(latitude);
+    const finalLongitude = parseFloat(longitude);
 
     // Determine requester type
     let requesterType = role === 'user' ? 'user' : role;
@@ -44,7 +42,7 @@ router.post('/', auth, async (req, res) => {
       `INSERT INTO blood_requests (requester_id, requester_type, blood_group, units_needed, latitude, longitude, address, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
        RETURNING *`,
-      [id, requesterType, blood_group, units_needed || 1, latitude, longitude, address]
+      [id, requesterType, blood_group, units_needed || 1, finalLatitude, finalLongitude, address]
     );
 
     const request = result.rows[0];
@@ -65,15 +63,14 @@ router.post('/', auth, async (req, res) => {
         [blood_group, role === 'user' ? id : 0]
       );
 
-      const nearbyUsers = usersResult.rows.filter(u => 
+      const nearbyUsers = usersResult.rows.filter(u =>
         haversineDistance(latitude, longitude, u.latitude, u.longitude) <= 35000
       );
 
       // Find NGOs within 35km
       const ngosResult = await pool.query(
         `SELECT id, latitude, longitude FROM ngos 
-         WHERE is_approved = TRUE
-           AND latitude IS NOT NULL 
+         WHERE latitude IS NOT NULL 
            AND longitude IS NOT NULL`
       );
 
@@ -84,8 +81,7 @@ router.post('/', auth, async (req, res) => {
       // Find Blood Banks within 35km
       const bloodBanksResult = await pool.query(
         `SELECT id, latitude, longitude FROM blood_banks 
-         WHERE is_approved = TRUE
-           AND latitude IS NOT NULL 
+         WHERE latitude IS NOT NULL 
            AND longitude IS NOT NULL`
       );
 
@@ -112,7 +108,7 @@ router.post('/', auth, async (req, res) => {
       locationWarning = 'Address could not be geocoded. Location-based alerts were not sent.';
     }
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Blood request created',
       request,
       alertsSent: allRoomIds.length,

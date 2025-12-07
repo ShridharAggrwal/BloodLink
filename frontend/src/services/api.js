@@ -20,14 +20,32 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Handle 401 errors (unauthorized/token expired)
+    // Only redirect to login if:
+    // 1. It's a 401 error
+    // 2. It's NOT a login request (to avoid clearing form on wrong credentials)
+    // 3. User has a token (meaning they were logged in but token expired)
+    if (
+      error.response?.status === 401 &&
+      !error.config.url.includes('/auth/login') &&
+      localStorage.getItem('token')
+    ) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
     }
+
+    // Handle 403 errors (account suspended)
+    if (error.response?.status === 403) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      // Show alert with suspension message
+      alert(error.response?.data?.error || 'Your account has been suspended.')
+      window.location.href = '/login'
+    }
+
     return Promise.reject(error)
   }
 )
 
 export default api
-

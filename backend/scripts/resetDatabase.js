@@ -8,7 +8,7 @@ const resetDatabase = async () => {
 
     // Drop all tables in correct order (handle foreign key constraints)
     console.log('🗑️  Dropping existing tables...');
-    
+
     const dropTables = [
       'blood_stock',
       'donations',
@@ -51,6 +51,7 @@ const resetDatabase = async () => {
     console.log('  ✓ All old data deleted');
     console.log('  ✓ Tables recreated');
     console.log('  ✓ Admin user created with coordinates');
+    console.log('  ✓ NGOs and Blood Banks are auto-verified when created via admin token');
     console.log('\n🔐 Admin Credentials:');
     console.log('  Email: admin@bloodlink.com');
     console.log('  Password: Admin@123');

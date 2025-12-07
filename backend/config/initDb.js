@@ -16,6 +16,7 @@ const initDatabase = async () => {
         latitude DOUBLE PRECISION,
         longitude DOUBLE PRECISION,
         is_verified BOOLEAN DEFAULT FALSE,
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'suspended')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -52,7 +53,8 @@ const initDatabase = async () => {
         latitude DOUBLE PRECISION,
         longitude DOUBLE PRECISION,
         volunteer_count INTEGER DEFAULT 0,
-        is_approved BOOLEAN DEFAULT FALSE,
+        is_verified BOOLEAN DEFAULT TRUE,
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'suspended')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -69,7 +71,8 @@ const initDatabase = async () => {
         address TEXT,
         latitude DOUBLE PRECISION,
         longitude DOUBLE PRECISION,
-        is_approved BOOLEAN DEFAULT FALSE,
+        is_verified BOOLEAN DEFAULT TRUE,
+        status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'suspended')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);

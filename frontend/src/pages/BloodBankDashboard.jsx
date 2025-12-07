@@ -27,7 +27,7 @@ const Sidebar = () => {
     <aside className="w-64 bg-white border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-sm">
       <Link to="/" className="flex items-center gap-2 mb-8 px-2">
         <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z"/></svg>
+          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" /></svg>
         </div>
         <span className="text-xl font-bold text-gray-900">BloodLink</span>
       </Link>
@@ -73,7 +73,7 @@ const Overview = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Blood Bank Dashboard</h1>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="card"><div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-2xl mb-3">🩸</div><div className="text-2xl font-bold text-gray-900">{stats.totalUnits}</div><div className="text-gray-500">Total Units in Stock</div></div>
         <div className="card"><div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-2xl mb-3">📋</div><div className="text-2xl font-bold text-gray-900">{stats.pendingRequests}</div><div className="text-gray-500">Nearby Requests</div></div>
@@ -245,21 +245,55 @@ const RequestBlood = () => {
 
 // Profile Section
 const BloodBankProfile = () => {
-  const { user } = useAuth()
-  const [formData, setFormData] = useState({ name: '', contact_info: '', address: '' })
+  const { user, updateUser } = useAuth()
+  const [formData, setFormData] = useState({ name: '', contact_info: '', address: '', latitude: '', longitude: '' })
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [loading, setLoading] = useState(false)
+  const [loadingLocation, setLoadingLocation] = useState(false)
   const [toast, setToast] = useState(null)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
 
   useEffect(() => {
-    const fetchProfile = async () => { try { const response = await api.get('/blood-bank/profile'); setFormData({ name: response.data.name || '', contact_info: response.data.contact_info || '', address: response.data.address || '' }) } catch (error) { console.log('Failed to fetch profile') } }
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/blood-bank/profile')
+        setFormData({ name: response.data.name || '', contact_info: response.data.contact_info || '', address: response.data.address || '', latitude: response.data.lat || '', longitude: response.data.lng || '' })
+      } catch (error) { console.log('Failed to fetch profile') }
+    }
     fetchProfile()
   }, [])
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setToast({ type: 'error', message: 'Geolocation is not supported by your browser' })
+      return
+    }
+    setLoadingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({ ...formData, latitude: position.coords.latitude.toFixed(15), longitude: position.coords.longitude.toFixed(15) })
+        setLoadingLocation(false)
+        setToast({ type: 'success', message: 'Location updated successfully' })
+      },
+      (error) => {
+        setLoadingLocation(false)
+        let errorMessage = 'Failed to get location'
+        if (error.code === error.PERMISSION_DENIED) errorMessage = 'Location permission denied. Please enable location access.'
+        else if (error.code === error.POSITION_UNAVAILABLE) errorMessage = 'Location information unavailable.'
+        setToast({ type: 'error', message: errorMessage })
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); setLoading(true)
-    try { await api.put('/blood-bank/profile', formData); setToast({ type: 'success', message: 'Profile updated successfully' }) }
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const response = await api.put('/blood-bank/profile', { ...formData, latitude: formData.latitude ? parseFloat(formData.latitude) : null, longitude: formData.longitude ? parseFloat(formData.longitude) : null })
+      if (response.data.bloodBank) updateUser(response.data.bloodBank)
+      setToast({ type: 'success', message: 'Profile updated successfully' })
+    }
     catch (error) { setToast({ type: 'error', message: 'Failed to update profile' }) }
     finally { setLoading(false) }
   }
@@ -270,7 +304,9 @@ const BloodBankProfile = () => {
     setLoading(true)
     try {
       await api.put('/blood-bank/change-password', { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword })
-      setToast({ type: 'success', message: 'Password changed successfully' }); setShowPasswordModal(false); setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setToast({ type: 'success', message: 'Password changed successfully' })
+      setShowPasswordModal(false)
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
     } catch (error) { setToast({ type: 'error', message: error.response?.data?.error || 'Failed to change password' }) }
     finally { setLoading(false) }
   }
@@ -279,12 +315,27 @@ const BloodBankProfile = () => {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Blood Bank Profile</h1>
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      <div className="card max-w-lg">
+      <div className="card max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-2">Blood Bank Name</label><input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input-field" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" value={user?.email} className="input-field bg-gray-50" disabled /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-2">Contact Info</label><input type="text" value={formData.contact_info} onChange={(e) => setFormData({ ...formData, contact_info: e.target.value })} className="input-field" placeholder="Phone number" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-2">Address</label><textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input-field resize-none" rows="2" /></div>
+
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">Location Coordinates</label>
+              <button type="button" onClick={handleGetLocation} disabled={loadingLocation} className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                {loadingLocation ? (<><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Getting...</>) : (<>📍 Get Current Location</>)}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="block text-xs text-gray-500 mb-1">Latitude</label><input type="number" step="any" value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} className="input-field text-sm" placeholder="e.g., 12.971592847362951" /></div>
+              <div><label className="block text-xs text-gray-500 mb-1">Longitude</label><input type="number" step="any" value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} className="input-field text-sm" placeholder="e.g., 77.594623847362847" /></div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Location is used to calculate distances for blood requests.</p>
+          </div>
+
           <div className="flex gap-4 pt-4"><button type="submit" disabled={loading} className="btn-primary flex-1">{loading ? 'Saving...' : 'Save Changes'}</button><button type="button" onClick={() => setShowPasswordModal(true)} className="btn-secondary">Change Password</button></div>
         </form>
       </div>

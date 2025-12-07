@@ -4,17 +4,16 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
-const { geocodeAddress } = require('../services/geocodeService');
 
 // Haversine formula to calculate distance in meters
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371000; // Earth's radius in meters
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
@@ -41,44 +40,21 @@ router.get('/profile', auth, roleCheck('user'), async (req, res) => {
 // Update profile
 router.put('/profile', auth, roleCheck('user'), async (req, res) => {
   try {
-    const { name, phone, gender, blood_group, address } = req.body;
+    const { name, phone, gender, blood_group, address, latitude, longitude } = req.body;
 
-    // Geocode new address if provided
-    let latitude = null, longitude = null;
-    if (address) {
-      const coords = await geocodeAddress(address);
-      if (coords) {
-        latitude = coords.lat;
-        longitude = coords.lng;
-      }
-    }
-
-    let query, params;
-    if (latitude && longitude) {
-      query = `UPDATE users 
-               SET name = COALESCE($1, name),
-                   phone = COALESCE($2, phone),
-                   gender = COALESCE($3, gender),
-                   blood_group = COALESCE($4, blood_group),
-                   address = COALESCE($5, address),
-                   latitude = $6,
-                   longitude = $7
-               WHERE id = $8
-               RETURNING id, name, email, phone, gender, blood_group, address`;
-      params = [name, phone, gender, blood_group, address, latitude, longitude, req.user.id];
-    } else {
-      query = `UPDATE users 
-               SET name = COALESCE($1, name),
-                   phone = COALESCE($2, phone),
-                   gender = COALESCE($3, gender),
-                   blood_group = COALESCE($4, blood_group),
-                   address = COALESCE($5, address)
-               WHERE id = $6
-               RETURNING id, name, email, phone, gender, blood_group, address`;
-      params = [name, phone, gender, blood_group, address, req.user.id];
-    }
-
-    const result = await pool.query(query, params);
+    const result = await pool.query(
+      `UPDATE users 
+       SET name = COALESCE($1, name),
+           phone = COALESCE($2, phone),
+           gender = COALESCE($3, gender),
+           blood_group = COALESCE($4, blood_group),
+           address = COALESCE($5, address),
+           latitude = COALESCE($6, latitude),
+           longitude = COALESCE($7, longitude)
+       WHERE id = $8
+       RETURNING id, name, email, phone, gender, blood_group, address, latitude, longitude`,
+      [name, phone, gender, blood_group, address, latitude, longitude, req.user.id]
+    );
     res.json({ message: 'Profile updated', user: result.rows[0] });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -183,11 +159,10 @@ router.get('/nearby', auth, roleCheck('user'), async (req, res) => {
       .filter(c => c.distance <= 35000)
       .sort((a, b) => a.distance - b.distance);
 
-    // Get all approved blood banks
+    // Get all blood banks
     const bloodBanksResult = await pool.query(
       `SELECT id, name, address, contact_info, latitude, longitude
-       FROM blood_banks
-       WHERE is_approved = TRUE`
+       FROM blood_banks`
     );
 
     // Filter blood banks within 35km

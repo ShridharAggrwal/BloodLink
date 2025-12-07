@@ -7,8 +7,8 @@ router.get('/', async (req, res) => {
   try {
     const [donors, bloodBanks, ngos, donations] = await Promise.all([
       pool.query('SELECT COUNT(*) FROM users WHERE is_verified = TRUE'),
-      pool.query('SELECT COUNT(*) FROM blood_banks WHERE is_approved = TRUE'),
-      pool.query('SELECT COUNT(*) FROM ngos WHERE is_approved = TRUE'),
+      pool.query('SELECT COUNT(*) FROM blood_banks'),
+      pool.query('SELECT COUNT(*) FROM ngos'),
       pool.query('SELECT COUNT(*) FROM donations')
     ]);
 
@@ -50,7 +50,6 @@ router.get('/blood-banks', async (req, res) => {
               json_agg(json_build_object('blood_group', bs.blood_group, 'units', bs.units_available)) as stock
        FROM blood_banks bb
        LEFT JOIN blood_stock bs ON bb.id = bs.blood_bank_id
-       WHERE bb.is_approved = TRUE
        GROUP BY bb.id
        ORDER BY bb.name`
     );

@@ -14,7 +14,6 @@ const Sidebar = () => {
   const navItems = [
     { path: '/admin', label: 'Overview', icon: '📊' },
     { path: '/admin/generate-token', label: 'Generate Token', icon: '🔗' },
-    { path: '/admin/pending', label: 'Pending Approvals', icon: '⏳' },
     { path: '/admin/users', label: 'Users', icon: '👥' },
     { path: '/admin/ngos', label: 'NGOs', icon: '🤝' },
     { path: '/admin/blood-banks', label: 'Blood Banks', icon: '🏥' },
@@ -32,7 +31,7 @@ const Sidebar = () => {
       <Link to="/" className="flex items-center gap-2 mb-8 px-2">
         <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
           <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z"/>
+            <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
           </svg>
         </div>
         <span className="text-xl font-bold text-gray-900">BloodLink</span>
@@ -48,11 +47,10 @@ const Sidebar = () => {
           <Link
             key={item.path}
             to={item.path}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              location.pathname === item.path
-                ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${location.pathname === item.path
+              ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+              : 'text-gray-600 hover:bg-gray-50'
+              }`}
           >
             <span>{item.icon}</span>
             <span>{item.label}</span>
@@ -77,8 +75,6 @@ const Overview = () => {
     approvedUsers: 0,
     approvedNgos: 0,
     approvedBloodBanks: 0,
-    pendingNgos: 0,
-    pendingBloodBanks: 0,
     totalDonations: 0
   })
 
@@ -98,15 +94,13 @@ const Overview = () => {
     { label: 'Approved Users', value: stats.approvedUsers, icon: '👥', color: 'bg-blue-50 text-blue-600' },
     { label: 'Approved NGOs', value: stats.approvedNgos, icon: '🤝', color: 'bg-green-50 text-green-600' },
     { label: 'Approved Blood Banks', value: stats.approvedBloodBanks, icon: '🏥', color: 'bg-purple-50 text-purple-600' },
-    { label: 'Pending NGOs', value: stats.pendingNgos, icon: '⏳', color: 'bg-yellow-50 text-yellow-600' },
-    { label: 'Pending Blood Banks', value: stats.pendingBloodBanks, icon: '⏳', color: 'bg-orange-50 text-orange-600' },
     { label: 'Total Donations', value: stats.totalDonations, icon: '❤️', color: 'bg-red-50 text-red-600' },
   ]
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((stat) => (
           <div key={stat.label} className="card">
@@ -119,19 +113,6 @@ const Overview = () => {
         ))}
       </div>
 
-      {(stats.pendingNgos > 0 || stats.pendingBloodBanks > 0) && (
-        <div className="card mt-6 border-yellow-200 bg-yellow-50/50">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span>⚠️</span> Action Required
-          </h2>
-          <p className="text-gray-600 mb-4">
-            You have pending approvals that need your attention.
-          </p>
-          <Link to="/admin/pending" className="btn-primary inline-block">
-            Review Approvals
-          </Link>
-        </div>
-      )}
     </div>
   )
 }
@@ -168,7 +149,7 @@ const GenerateToken = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Generate Signup Token</h1>
-      
+
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       <div className="card max-w-lg">
@@ -183,11 +164,10 @@ const GenerateToken = () => {
               <button
                 type="button"
                 onClick={() => setType('ngo')}
-                className={`py-3 px-4 rounded-xl border text-center transition-all ${
-                  type === 'ngo'
-                    ? 'bg-red-600 border-red-600 text-white'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
+                className={`py-3 px-4 rounded-xl border text-center transition-all ${type === 'ngo'
+                  ? 'bg-red-600 border-red-600 text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
               >
                 <span className="text-2xl block mb-1">🤝</span>
                 NGO
@@ -195,11 +175,10 @@ const GenerateToken = () => {
               <button
                 type="button"
                 onClick={() => setType('blood_bank')}
-                className={`py-3 px-4 rounded-xl border text-center transition-all ${
-                  type === 'blood_bank'
-                    ? 'bg-red-600 border-red-600 text-white'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
+                className={`py-3 px-4 rounded-xl border text-center transition-all ${type === 'blood_bank'
+                  ? 'bg-red-600 border-red-600 text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
               >
                 <span className="text-2xl block mb-1">🏥</span>
                 Blood Bank
@@ -259,124 +238,58 @@ const GenerateToken = () => {
   )
 }
 
-// Pending Approvals Section
-const PendingApprovals = () => {
-  const [pending, setPending] = useState({ ngos: [], bloodBanks: [] })
+// Users List Section
+const UsersList = () => {
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
+  const [confirmModal, setConfirmModal] = useState({ open: false, type: '', id: null, name: '' })
 
-  const fetchPending = async () => {
+  const fetchUsers = async () => {
     try {
-      const response = await api.get('/admin/pending-approvals')
-      setPending(response.data)
+      const response = await api.get('/admin/users')
+      setUsers(response.data)
     } catch (error) {
-      console.log('Failed to fetch pending')
+      console.log('Failed to fetch users')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchPending()
-  }, [])
-
-  const handleApprove = async (type, id) => {
-    try {
-      await api.put(`/admin/approve/${type}/${id}`)
-      setToast({ type: 'success', message: 'Approved successfully!' })
-      fetchPending()
-    } catch (error) {
-      setToast({ type: 'error', message: 'Failed to approve' })
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div>
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Pending Approvals</h1>
-      
-      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">NGOs ({pending.ngos.length})</h2>
-      {pending.ngos.length === 0 ? (
-        <div className="card text-center py-8 mb-8">
-          <p className="text-gray-500">No pending NGO approvals</p>
-        </div>
-      ) : (
-        <div className="space-y-4 mb-8">
-          {pending.ngos.map((ngo) => (
-            <div key={ngo.id} className="card flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-gray-900">{ngo.name}</h3>
-                <p className="text-gray-500 text-sm">Owner: {ngo.owner_name}</p>
-                <p className="text-gray-400 text-sm">{ngo.email}</p>
-                <p className="text-gray-400 text-sm">{ngo.address}</p>
-              </div>
-              <button
-                onClick={() => handleApprove('ngo', ngo.id)}
-                className="btn-primary"
-              >
-                Approve
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Blood Banks ({pending.bloodBanks.length})</h2>
-      {pending.bloodBanks.length === 0 ? (
-        <div className="card text-center py-8">
-          <p className="text-gray-500">No pending Blood Bank approvals</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {pending.bloodBanks.map((bank) => (
-            <div key={bank.id} className="card flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-gray-900">{bank.name}</h3>
-                <p className="text-gray-500 text-sm">{bank.contact_info}</p>
-                <p className="text-gray-400 text-sm">{bank.email}</p>
-                <p className="text-gray-400 text-sm">{bank.address}</p>
-              </div>
-              <button
-                onClick={() => handleApprove('blood_bank', bank.id)}
-                className="btn-primary"
-              >
-                Approve
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Users List Section
-const UsersList = () => {
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await api.get('/admin/users')
-        setUsers(response.data)
-      } catch (error) {
-        console.log('Failed to fetch users')
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchUsers()
   }, [])
+
+  const handleSuspend = async (id) => {
+    try {
+      await api.put(`/admin/suspend/user/${id}`)
+      setToast({ type: 'success', message: 'User suspended successfully' })
+      fetchUsers()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to suspend user' })
+    }
+  }
+
+  const handleActivate = async (id) => {
+    try {
+      await api.put(`/admin/activate/user/${id}`)
+      setToast({ type: 'success', message: 'User activated successfully' })
+      fetchUsers()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to activate user' })
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/admin/delete/user/${id}`)
+      setToast({ type: 'success', message: 'User deleted successfully' })
+      setConfirmModal({ open: false, type: '', id: null, name: '' })
+      fetchUsers()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to delete user' })
+    }
+  }
 
   if (loading) {
     return (
@@ -389,7 +302,9 @@ const UsersList = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Users ({users.length})</h1>
-      
+
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
       <div className="card overflow-hidden">
         <table className="w-full">
           <thead>
@@ -399,6 +314,7 @@ const UsersList = () => {
               <th className="text-left py-3 px-4 font-medium text-gray-500">Blood Group</th>
               <th className="text-left py-3 px-4 font-medium text-gray-500">Status</th>
               <th className="text-left py-3 px-4 font-medium text-gray-500">Joined</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-500">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -410,20 +326,75 @@ const UsersList = () => {
                   <span className="text-red-600 font-semibold">{user.blood_group || '-'}</span>
                 </td>
                 <td className="py-3 px-4">
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                    user.is_verified ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
-                  }`}>
-                    {user.is_verified ? 'Verified' : 'Pending'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${user.is_verified ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
+                      }`}>
+                      {user.is_verified ? 'Verified' : 'Not Verified'}
+                    </span>
+                    {user.status === 'suspended' && (
+                      <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600">
+                        Suspended
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="py-3 px-4 text-gray-400 text-sm">
                   {new Date(user.created_at).toLocaleDateString()}
+                </td>
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    {user.status === 'suspended' ? (
+                      <button
+                        onClick={() => handleActivate(user.id)}
+                        className="text-green-600 hover:text-green-700 text-sm font-medium"
+                      >
+                        Activate
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleSuspend(user.id)}
+                        className="text-yellow-600 hover:text-yellow-700 text-sm font-medium"
+                      >
+                        Suspend
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setConfirmModal({ open: true, type: 'user', id: user.id, name: user.name })}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={confirmModal.open} onClose={() => setConfirmModal({ open: false, type: '', id: null, name: '' })}>
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Confirm Delete</h2>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to delete <span className="font-semibold">{confirmModal.name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setConfirmModal({ open: false, type: '', id: null, name: '' })}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleDelete(confirmModal.id)}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -432,20 +403,54 @@ const UsersList = () => {
 const NgosList = () => {
   const [ngos, setNgos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+  const [confirmModal, setConfirmModal] = useState({ open: false, type: '', id: null, name: '' })
+
+  const fetchNgos = async () => {
+    try {
+      const response = await api.get('/admin/ngos')
+      setNgos(response.data)
+    } catch (error) {
+      console.log('Failed to fetch NGOs')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchNgos = async () => {
-      try {
-        const response = await api.get('/admin/ngos')
-        setNgos(response.data)
-      } catch (error) {
-        console.log('Failed to fetch NGOs')
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchNgos()
   }, [])
+
+  const handleSuspend = async (id) => {
+    try {
+      await api.put(`/admin/suspend/ngo/${id}`)
+      setToast({ type: 'success', message: 'NGO suspended successfully' })
+      fetchNgos()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to suspend NGO' })
+    }
+  }
+
+  const handleActivate = async (id) => {
+    try {
+      await api.put(`/admin/activate/ngo/${id}`)
+      setToast({ type: 'success', message: 'NGO activated successfully' })
+      fetchNgos()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to activate NGO' })
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/admin/delete/ngo/${id}`)
+      setToast({ type: 'success', message: 'NGO deleted successfully' })
+      setConfirmModal({ open: false, type: '', id: null, name: '' })
+      fetchNgos()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to delete NGO' })
+    }
+  }
 
   if (loading) {
     return (
@@ -458,7 +463,9 @@ const NgosList = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">NGOs ({ngos.length})</h1>
-      
+
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
       <div className="space-y-4">
         {ngos.map((ngo) => (
           <div key={ngo.id} className="card">
@@ -471,15 +478,70 @@ const NgosList = () => {
                   Volunteers: {ngo.volunteer_count}
                 </p>
               </div>
-              <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                ngo.is_approved ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
-              }`}>
-                {ngo.is_approved ? 'Approved' : 'Pending'}
-              </span>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${ngo.is_verified ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
+                    }`}>
+                    {ngo.is_verified ? 'Verified' : 'Not Verified'}
+                  </span>
+                  {ngo.status === 'suspended' && (
+                    <span className="px-3 py-1 rounded-lg text-sm font-medium bg-red-50 text-red-600">
+                      Suspended
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {ngo.status === 'suspended' ? (
+                    <button
+                      onClick={() => handleActivate(ngo.id)}
+                      className="text-green-600 hover:text-green-700 text-sm font-medium"
+                    >
+                      Activate
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleSuspend(ngo.id)}
+                      className="text-yellow-600 hover:text-yellow-700 text-sm font-medium"
+                    >
+                      Suspend
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setConfirmModal({ open: true, type: 'ngo', id: ngo.id, name: ngo.name })}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={confirmModal.open} onClose={() => setConfirmModal({ open: false, type: '', id: null, name: '' })}>
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Confirm Delete</h2>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to delete <span className="font-semibold">{confirmModal.name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setConfirmModal({ open: false, type: '', id: null, name: '' })}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleDelete(confirmModal.id)}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -488,20 +550,54 @@ const NgosList = () => {
 const BloodBanksList = () => {
   const [bloodBanks, setBloodBanks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+  const [confirmModal, setConfirmModal] = useState({ open: false, type: '', id: null, name: '' })
+
+  const fetchBloodBanks = async () => {
+    try {
+      const response = await api.get('/admin/blood-banks')
+      setBloodBanks(response.data)
+    } catch (error) {
+      console.log('Failed to fetch blood banks')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchBloodBanks = async () => {
-      try {
-        const response = await api.get('/admin/blood-banks')
-        setBloodBanks(response.data)
-      } catch (error) {
-        console.log('Failed to fetch blood banks')
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchBloodBanks()
   }, [])
+
+  const handleSuspend = async (id) => {
+    try {
+      await api.put(`/admin/suspend/blood_bank/${id}`)
+      setToast({ type: 'success', message: 'Blood Bank suspended successfully' })
+      fetchBloodBanks()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to suspend Blood Bank' })
+    }
+  }
+
+  const handleActivate = async (id) => {
+    try {
+      await api.put(`/admin/activate/blood_bank/${id}`)
+      setToast({ type: 'success', message: 'Blood Bank activated successfully' })
+      fetchBloodBanks()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to activate Blood Bank' })
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/admin/delete/blood_bank/${id}`)
+      setToast({ type: 'success', message: 'Blood Bank deleted successfully' })
+      setConfirmModal({ open: false, type: '', id: null, name: '' })
+      fetchBloodBanks()
+    } catch (error) {
+      setToast({ type: 'error', message: 'Failed to delete Blood Bank' })
+    }
+  }
 
   if (loading) {
     return (
@@ -514,7 +610,9 @@ const BloodBanksList = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Blood Banks ({bloodBanks.length})</h1>
-      
+
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
       <div className="space-y-4">
         {bloodBanks.map((bank) => (
           <div key={bank.id} className="card">
@@ -524,15 +622,70 @@ const BloodBanksList = () => {
                 <p className="text-gray-500">{bank.contact_info}</p>
                 <p className="text-gray-400 text-sm">{bank.email}</p>
               </div>
-              <span className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                bank.is_approved ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
-              }`}>
-                {bank.is_approved ? 'Approved' : 'Pending'}
-              </span>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${bank.is_verified ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
+                    }`}>
+                    {bank.is_verified ? 'Verified' : 'Not Verified'}
+                  </span>
+                  {bank.status === 'suspended' && (
+                    <span className="px-3 py-1 rounded-lg text-sm font-medium bg-red-50 text-red-600">
+                      Suspended
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {bank.status === 'suspended' ? (
+                    <button
+                      onClick={() => handleActivate(bank.id)}
+                      className="text-green-600 hover:text-green-700 text-sm font-medium"
+                    >
+                      Activate
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleSuspend(bank.id)}
+                      className="text-yellow-600 hover:text-yellow-700 text-sm font-medium"
+                    >
+                      Suspend
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setConfirmModal({ open: true, type: 'blood_bank', id: bank.id, name: bank.name })}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={confirmModal.open} onClose={() => setConfirmModal({ open: false, type: '', id: null, name: '' })}>
+        <div className="p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Confirm Delete</h2>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to delete <span className="font-semibold">{confirmModal.name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setConfirmModal({ open: false, type: '', id: null, name: '' })}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleDelete(confirmModal.id)}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-medium transition-colors"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
@@ -542,21 +695,70 @@ const AdminRequestBlood = () => {
   const [formData, setFormData] = useState({
     blood_group: '',
     units_needed: 1,
-    address: ''
+    address: '',
+    latitude: '',
+    longitude: ''
   })
   const [loading, setLoading] = useState(false)
+  const [loadingLocation, setLoadingLocation] = useState(false)
   const [toast, setToast] = useState(null)
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setToast({ type: 'error', message: 'Geolocation is not supported by your browser' })
+      return
+    }
+
+    setLoadingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({
+          ...formData,
+          latitude: position.coords.latitude.toFixed(15),
+          longitude: position.coords.longitude.toFixed(15)
+        })
+        setLoadingLocation(false)
+        setToast({ type: 'success', message: 'Location updated successfully' })
+      },
+      (error) => {
+        setLoadingLocation(false)
+        let errorMessage = 'Failed to get location'
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = 'Location permission denied. Please enable location access.'
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = 'Location information unavailable.'
+        }
+        setToast({ type: 'error', message: errorMessage })
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // Validate coordinates are provided
+    if (!formData.latitude || !formData.longitude) {
+      setToast({ type: 'error', message: 'Please provide location coordinates' })
+      return
+    }
+
     setLoading(true)
 
     try {
-      const response = await api.post('/blood-requests', formData)
+      const response = await api.post('/blood-requests', {
+        ...formData,
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude)
+      })
       setToast({ type: 'success', message: `Request created! ${response.data.alertsSent} donors notified.` })
-      setFormData({ blood_group: '', units_needed: 1, address: '' })
+      setFormData({ blood_group: '', units_needed: 1, address: '', latitude: '', longitude: '' })
     } catch (error) {
       setToast({ type: 'error', message: error.response?.data?.error || 'Failed to create request' })
     } finally {
@@ -567,10 +769,10 @@ const AdminRequestBlood = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Request Blood</h1>
-      
+
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      <div className="card max-w-lg">
+      <div className="card max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Blood Group Needed</label>
@@ -612,6 +814,64 @@ const AdminRequestBlood = () => {
             />
           </div>
 
+          {/* Location Coordinates Section */}
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Location Coordinates <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={loadingLocation}
+                className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+              >
+                {loadingLocation ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Getting...
+                  </>
+                ) : (
+                  <>
+                    📍 Get Current Location
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.latitude}
+                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                  className="input-field text-sm"
+                  placeholder="e.g., 12.971592847362951"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.longitude}
+                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                  className="input-field text-sm"
+                  placeholder="e.g., 77.594623847362847"
+                  required
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Precise coordinates are required to notify nearby donors within 35km radius.
+            </p>
+          </div>
+
           <button type="submit" disabled={loading} className="btn-primary w-full">
             {loading ? 'Creating Request...' : 'Request Blood'}
           </button>
@@ -623,12 +883,14 @@ const AdminRequestBlood = () => {
 
 // Profile Section
 const AdminProfile = () => {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const [formData, setFormData] = useState({
     name: '',
     age: '',
     gender: '',
-    address: ''
+    address: '',
+    latitude: '',
+    longitude: ''
   })
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -636,6 +898,7 @@ const AdminProfile = () => {
     confirmPassword: ''
   })
   const [loading, setLoading] = useState(false)
+  const [loadingLocation, setLoadingLocation] = useState(false)
   const [toast, setToast] = useState(null)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
 
@@ -647,7 +910,9 @@ const AdminProfile = () => {
           name: response.data.name || '',
           age: response.data.age || '',
           gender: response.data.gender || '',
-          address: response.data.address || ''
+          address: response.data.address || '',
+          latitude: response.data.lat || '',
+          longitude: response.data.lng || ''
         })
       } catch (error) {
         console.log('Failed to fetch profile')
@@ -656,12 +921,57 @@ const AdminProfile = () => {
     fetchProfile()
   }, [])
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setToast({ type: 'error', message: 'Geolocation is not supported by your browser' })
+      return
+    }
+
+    setLoadingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({
+          ...formData,
+          latitude: position.coords.latitude.toFixed(15),
+          longitude: position.coords.longitude.toFixed(15)
+        })
+        setLoadingLocation(false)
+        setToast({ type: 'success', message: 'Location updated successfully' })
+      },
+      (error) => {
+        setLoadingLocation(false)
+        let errorMessage = 'Failed to get location'
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = 'Location permission denied. Please enable location access.'
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = 'Location information unavailable.'
+        }
+        setToast({ type: 'error', message: errorMessage })
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      await api.put('/admin/profile', formData)
+      const response = await api.put('/admin/profile', {
+        ...formData,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null
+      })
+
+      // Update user context with new data
+      if (response.data.admin) {
+        updateUser(response.data.admin)
+      }
+
       setToast({ type: 'success', message: 'Profile updated successfully' })
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to update profile' })
@@ -696,10 +1006,10 @@ const AdminProfile = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Profile</h1>
-      
+
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      <div className="card max-w-lg">
+      <div className="card max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
@@ -754,6 +1064,60 @@ const AdminProfile = () => {
               className="input-field resize-none"
               rows="2"
             />
+          </div>
+
+          {/* Location Section */}
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">Location Coordinates</label>
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={loadingLocation}
+                className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+              >
+                {loadingLocation ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Getting...
+                  </>
+                ) : (
+                  <>
+                    📍 Get Current Location
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.latitude}
+                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                  className="input-field text-sm"
+                  placeholder="e.g., 12.9716"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.longitude}
+                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                  className="input-field text-sm"
+                  placeholder="e.g., 77.5946"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Location is used to calculate distances for blood requests and campaigns.
+            </p>
           </div>
 
           <div className="flex gap-4 pt-4">
@@ -825,7 +1189,6 @@ const AdminDashboard = () => {
         <Routes>
           <Route index element={<Overview />} />
           <Route path="generate-token" element={<GenerateToken />} />
-          <Route path="pending" element={<PendingApprovals />} />
           <Route path="users" element={<UsersList />} />
           <Route path="ngos" element={<NgosList />} />
           <Route path="blood-banks" element={<BloodBanksList />} />

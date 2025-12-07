@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
-const { geocodeAddress } = require('../services/geocodeService');
 
 // Get NGO profile
 router.get('/profile', auth, roleCheck('ngo'), async (req, res) => {
@@ -30,45 +29,22 @@ router.get('/profile', auth, roleCheck('ngo'), async (req, res) => {
 // Update NGO profile
 router.put('/profile', auth, roleCheck('ngo'), async (req, res) => {
   try {
-    const { name, owner_name, age, gender, address, volunteer_count } = req.body;
+    const { name, owner_name, age, gender, address, volunteer_count, latitude, longitude } = req.body;
 
-    let latitude = null, longitude = null;
-    if (address) {
-      const coords = await geocodeAddress(address);
-      if (coords) {
-        latitude = coords.lat;
-        longitude = coords.lng;
-      }
-    }
-
-    let query, params;
-    if (latitude && longitude) {
-      query = `UPDATE ngos 
-               SET name = COALESCE($1, name),
-                   owner_name = COALESCE($2, owner_name),
-                   age = COALESCE($3, age),
-                   gender = COALESCE($4, gender),
-                   address = COALESCE($5, address),
-                   latitude = $6,
-                   longitude = $7,
-                   volunteer_count = COALESCE($8, volunteer_count)
-               WHERE id = $9
-               RETURNING id, name, owner_name, email, age, gender, address, volunteer_count`;
-      params = [name, owner_name, age, gender, address, latitude, longitude, volunteer_count, req.user.id];
-    } else {
-      query = `UPDATE ngos 
-               SET name = COALESCE($1, name),
-                   owner_name = COALESCE($2, owner_name),
-                   age = COALESCE($3, age),
-                   gender = COALESCE($4, gender),
-                   address = COALESCE($5, address),
-                   volunteer_count = COALESCE($6, volunteer_count)
-               WHERE id = $7
-               RETURNING id, name, owner_name, email, age, gender, address, volunteer_count`;
-      params = [name, owner_name, age, gender, address, volunteer_count, req.user.id];
-    }
-
-    const result = await pool.query(query, params);
+    const result = await pool.query(
+      `UPDATE ngos 
+       SET name = COALESCE($1, name),
+           owner_name = COALESCE($2, owner_name),
+           age = COALESCE($3, age),
+           gender = COALESCE($4, gender),
+           address = COALESCE($5, address),
+           volunteer_count = COALESCE($6, volunteer_count),
+           latitude = COALESCE($7, latitude),
+           longitude = COALESCE($8, longitude)
+       WHERE id = $9
+       RETURNING id, name, owner_name, email, age, gender, address, volunteer_count, latitude, longitude`,
+      [name, owner_name, age, gender, address, volunteer_count, latitude, longitude, req.user.id]
+    );
     res.json({ message: 'Profile updated', ngo: result.rows[0] });
   } catch (error) {
     console.error('Update NGO profile error:', error);
@@ -128,22 +104,27 @@ router.get('/stats', auth, roleCheck('ngo'), async (req, res) => {
 // Create campaign
 router.post('/campaigns', auth, roleCheck('ngo'), async (req, res) => {
   try {
-    const { title, address, start_date, end_date } = req.body;
+    const { title, address, latitude, longitude, start_date, end_date } = req.body;
 
-    let latitude = null, longitude = null;
-    if (address) {
-      const coords = await geocodeAddress(address);
-      if (coords) {
-        latitude = coords.lat;
-        longitude = coords.lng;
-      }
+    // Validate required fields
+    if (!address) {
+      return res.status(400).json({ error: 'Address is required' });
     }
+
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        error: 'Location coordinates are required. Please allow location access or enter manually.'
+      });
+    }
+
+    const finalLatitude = parseFloat(latitude);
+    const finalLongitude = parseFloat(longitude);
 
     const result = await pool.query(
       `INSERT INTO campaigns (ngo_id, title, latitude, longitude, address, start_date, end_date, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
        RETURNING *`,
-      [req.user.id, title, latitude, longitude, address, start_date, end_date]
+      [req.user.id, title, finalLatitude, finalLongitude, address, start_date, end_date]
     );
 
     res.status(201).json({ message: 'Campaign created', campaign: result.rows[0] });
@@ -174,7 +155,7 @@ router.get('/campaigns', auth, roleCheck('ngo'), async (req, res) => {
 router.put('/campaigns/:id', auth, roleCheck('ngo'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, address, start_date, end_date, status } = req.body;
+    const { title, address, latitude, longitude, start_date, end_date, status } = req.body;
 
     // Verify campaign belongs to this NGO
     const check = await pool.query(
@@ -186,41 +167,21 @@ router.put('/campaigns/:id', auth, roleCheck('ngo'), async (req, res) => {
       return res.status(404).json({ error: 'Campaign not found' });
     }
 
-    let latitude = null, longitude = null;
-    if (address) {
-      const coords = await geocodeAddress(address);
-      if (coords) {
-        latitude = coords.lat;
-        longitude = coords.lng;
-      }
-    }
+    // Build update query dynamically based on provided fields
+    const result = await pool.query(
+      `UPDATE campaigns 
+       SET title = COALESCE($1, title),
+           address = COALESCE($2, address),
+           latitude = COALESCE($3, latitude),
+           longitude = COALESCE($4, longitude),
+           start_date = COALESCE($5, start_date),
+           end_date = COALESCE($6, end_date),
+           status = COALESCE($7, status)
+       WHERE id = $8
+       RETURNING *`,
+      [title, address, latitude, longitude, start_date, end_date, status, id]
+    );
 
-    let query, params;
-    if (latitude && longitude) {
-      query = `UPDATE campaigns 
-               SET title = COALESCE($1, title),
-                   address = COALESCE($2, address),
-                   latitude = $3,
-                   longitude = $4,
-                   start_date = COALESCE($5, start_date),
-                   end_date = COALESCE($6, end_date),
-                   status = COALESCE($7, status)
-               WHERE id = $8
-               RETURNING *`;
-      params = [title, address, latitude, longitude, start_date, end_date, status, id];
-    } else {
-      query = `UPDATE campaigns 
-               SET title = COALESCE($1, title),
-                   address = COALESCE($2, address),
-                   start_date = COALESCE($3, start_date),
-                   end_date = COALESCE($4, end_date),
-                   status = COALESCE($5, status)
-               WHERE id = $6
-               RETURNING *`;
-      params = [title, address, start_date, end_date, status, id];
-    }
-
-    const result = await pool.query(query, params);
     res.json({ message: 'Campaign updated', campaign: result.rows[0] });
   } catch (error) {
     console.error('Update campaign error:', error);

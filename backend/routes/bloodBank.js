@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
-const { geocodeAddress } = require('../services/geocodeService');
 
 // Haversine formula to calculate distance in meters
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
@@ -41,39 +40,19 @@ router.get('/profile', auth, roleCheck('blood_bank'), async (req, res) => {
 // Update Blood Bank profile
 router.put('/profile', auth, roleCheck('blood_bank'), async (req, res) => {
   try {
-    const { name, contact_info, address } = req.body;
+    const { name, contact_info, address, latitude, longitude } = req.body;
 
-    let latitude = null, longitude = null;
-    if (address) {
-      const coords = await geocodeAddress(address);
-      if (coords) {
-        latitude = coords.lat;
-        longitude = coords.lng;
-      }
-    }
-
-    let query, params;
-    if (latitude && longitude) {
-      query = `UPDATE blood_banks 
-               SET name = COALESCE($1, name),
-                   contact_info = COALESCE($2, contact_info),
-                   address = COALESCE($3, address),
-                   latitude = $4,
-                   longitude = $5
-               WHERE id = $6
-               RETURNING id, name, email, contact_info, address`;
-      params = [name, contact_info, address, latitude, longitude, req.user.id];
-    } else {
-      query = `UPDATE blood_banks 
-               SET name = COALESCE($1, name),
-                   contact_info = COALESCE($2, contact_info),
-                   address = COALESCE($3, address)
-               WHERE id = $4
-               RETURNING id, name, email, contact_info, address`;
-      params = [name, contact_info, address, req.user.id];
-    }
-
-    const result = await pool.query(query, params);
+    const result = await pool.query(
+      `UPDATE blood_banks 
+       SET name = COALESCE($1, name),
+           contact_info = COALESCE($2, contact_info),
+           address = COALESCE($3, address),
+           latitude = COALESCE($4, latitude),
+           longitude = COALESCE($5, longitude)
+       WHERE id = $6
+       RETURNING id, name, email, contact_info, address, latitude, longitude`,
+      [name, contact_info, address, latitude, longitude, req.user.id]
+    );
     res.json({ message: 'Profile updated', bloodBank: result.rows[0] });
   } catch (error) {
     console.error('Update Blood Bank profile error:', error);

@@ -16,17 +16,19 @@ const Login = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+    // Clear error when user starts typing
     if (error) setError('')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    setError('')
+    setError('') // Clear previous errors
 
     try {
       const user = await login(formData.email, formData.password, formData.role)
-      
+
+      // Navigation happens after successful login
       switch (user.role) {
         case 'admin':
           navigate('/admin')
@@ -41,9 +43,10 @@ const Login = () => {
           navigate('/dashboard')
       }
     } catch (err) {
+      console.error('Login error:', err)
+      const errorMessage = err.response?.data?.error || err.message || 'Login failed. Please try again.'
+      setError(errorMessage)
       setLoading(false)
-      setError(err.response?.data?.error || 'Login failed. Please try again.')
-      return
     }
   }
 
@@ -57,7 +60,7 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="min-h-screen flex items-center justify-center px-4 pt-16">
         {/* Background Decorations */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -70,7 +73,7 @@ const Login = () => {
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-600/20">
                 <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z"/>
+                  <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
                 </svg>
               </div>
               <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
@@ -93,11 +96,10 @@ const Login = () => {
                       key={role.value}
                       type="button"
                       onClick={() => setFormData({ ...formData, role: role.value })}
-                      className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all ${
-                        formData.role === role.value
-                          ? 'bg-red-600 border-red-600 text-white'
-                          : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                      }`}
+                      className={`py-2 px-3 rounded-xl border text-sm font-medium transition-all ${formData.role === role.value
+                        ? 'bg-red-600 border-red-600 text-white'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
                     >
                       {role.label}
                     </button>

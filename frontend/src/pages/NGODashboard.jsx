@@ -32,7 +32,7 @@ const Sidebar = () => {
       <Link to="/" className="flex items-center gap-2 mb-8 px-2">
         <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
           <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z"/>
+            <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
           </svg>
         </div>
         <span className="text-xl font-bold text-gray-900">BloodLink</span>
@@ -48,11 +48,10 @@ const Sidebar = () => {
           <Link
             key={item.path}
             to={item.path}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-              location.pathname === item.path
-                ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${location.pathname === item.path
+              ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
+              : 'text-gray-600 hover:bg-gray-50'
+              }`}
           >
             <span>{item.icon}</span>
             <span>{item.label}</span>
@@ -96,7 +95,7 @@ const Overview = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">NGO Dashboard</h1>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="card">
           <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-2xl mb-3">📅</div>
@@ -197,7 +196,7 @@ const Campaigns = () => {
         <h1 className="text-2xl font-bold text-gray-900">Campaigns</h1>
         <Link to="/ngo/create-campaign" className="btn-primary">Create New</Link>
       </div>
-      
+
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       {campaigns.length === 0 ? (
@@ -239,12 +238,48 @@ const Campaigns = () => {
 // Create Campaign Section
 const CreateCampaign = () => {
   const navigate = useNavigate()
-  const [formData, setFormData] = useState({ title: '', address: '', start_date: '', end_date: '' })
+  const [formData, setFormData] = useState({ title: '', address: '', start_date: '', end_date: '', latitude: '', longitude: '' })
   const [loading, setLoading] = useState(false)
+  const [gettingLocation, setGettingLocation] = useState(false)
   const [toast, setToast] = useState(null)
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setToast({ type: 'error', message: 'Geolocation is not supported by your browser' })
+      return
+    }
+
+    setGettingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData(prev => ({
+          ...prev,
+          latitude: position.coords.latitude.toFixed(15),
+          longitude: position.coords.longitude.toFixed(15)
+        }))
+        setGettingLocation(false)
+        setToast({ type: 'success', message: 'Location captured successfully' })
+      },
+      (error) => {
+        setGettingLocation(false)
+        setToast({ type: 'error', message: 'Unable to get location. Please enter manually.' })
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    )
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    if (!formData.latitude || !formData.longitude) {
+      setToast({ type: 'error', message: 'Location is required. Please allow location access or enter manually.' })
+      return
+    }
+
     setLoading(true)
     try {
       await api.post('/ngo/campaigns', formData)
@@ -271,6 +306,73 @@ const CreateCampaign = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">Location / Address</label>
             <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input-field resize-none" rows="2" placeholder="Enter campaign location" required />
           </div>
+
+          {/* Campaign Location Coordinates */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Coordinates</label>
+
+            <button
+              type="button"
+              onClick={handleGetLocation}
+              disabled={gettingLocation}
+              className="w-full mb-3 py-2 px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {gettingLocation ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Getting location...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Get Campaign Location
+                </>
+              )}
+            </button>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Latitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.latitude}
+                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                  className="input-field text-sm"
+                  placeholder="e.g., 12.9716"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Longitude</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.longitude}
+                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                  className="input-field text-sm"
+                  placeholder="e.g., 77.5946"
+                  required
+                />
+              </div>
+            </div>
+
+            {formData.latitude && formData.longitude && (
+              <div className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Location set: {parseFloat(formData.latitude).toFixed(4)}, {parseFloat(formData.longitude).toFixed(4)}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Start Date & Time</label>
@@ -356,18 +458,46 @@ const NGOAlerts = () => {
 
 // Request Blood Section
 const NGORequestBlood = () => {
-  const [formData, setFormData] = useState({ blood_group: '', units_needed: 1, address: '' })
+  const [formData, setFormData] = useState({ blood_group: '', units_needed: 1, address: '', latitude: '', longitude: '' })
   const [loading, setLoading] = useState(false)
+  const [loadingLocation, setLoadingLocation] = useState(false)
   const [toast, setToast] = useState(null)
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setToast({ type: 'error', message: 'Geolocation is not supported by your browser' })
+      return
+    }
+    setLoadingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({ ...formData, latitude: position.coords.latitude.toFixed(15), longitude: position.coords.longitude.toFixed(15) })
+        setLoadingLocation(false)
+        setToast({ type: 'success', message: 'Location updated successfully' })
+      },
+      (error) => {
+        setLoadingLocation(false)
+        let errorMessage = 'Failed to get location'
+        if (error.code === error.PERMISSION_DENIED) errorMessage = 'Location permission denied. Please enable location access.'
+        else if (error.code === error.POSITION_UNAVAILABLE) errorMessage = 'Location information unavailable.'
+        setToast({ type: 'error', message: errorMessage })
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!formData.latitude || !formData.longitude) {
+      setToast({ type: 'error', message: 'Please provide location coordinates' })
+      return
+    }
     setLoading(true)
     try {
-      const response = await api.post('/blood-requests', formData)
+      const response = await api.post('/blood-requests', { ...formData, latitude: parseFloat(formData.latitude), longitude: parseFloat(formData.longitude) })
       setToast({ type: 'success', message: `Request created! ${response.data.alertsSent} donors notified.` })
-      setFormData({ blood_group: '', units_needed: 1, address: '' })
+      setFormData({ blood_group: '', units_needed: 1, address: '', latitude: '', longitude: '' })
     } catch (error) {
       setToast({ type: 'error', message: error.response?.data?.error || 'Failed to create request' })
     } finally {
@@ -379,7 +509,7 @@ const NGORequestBlood = () => {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Request Blood</h1>
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      <div className="card max-w-lg">
+      <div className="card max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Blood Group Needed</label>
@@ -396,6 +526,19 @@ const NGORequestBlood = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">Location / Address</label>
             <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input-field resize-none" rows="3" placeholder="Enter the address where blood is needed" required />
           </div>
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">Location Coordinates <span className="text-red-500">*</span></label>
+              <button type="button" onClick={handleGetLocation} disabled={loadingLocation} className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                {loadingLocation ? (<><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Getting...</>) : (<>📍 Get Current Location</>)}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="block text-xs text-gray-500 mb-1">Latitude</label><input type="number" step="any" value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} className="input-field text-sm" placeholder="e.g., 12.971592847362951" required /></div>
+              <div><label className="block text-xs text-gray-500 mb-1">Longitude</label><input type="number" step="any" value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} className="input-field text-sm" placeholder="e.g., 77.594623847362847" required /></div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Precise coordinates are required to notify nearby donors within 35km radius.</p>
+          </div>
           <button type="submit" disabled={loading} className="btn-primary w-full">{loading ? 'Creating Request...' : 'Request Blood'}</button>
         </form>
       </div>
@@ -405,10 +548,11 @@ const NGORequestBlood = () => {
 
 // Profile Section
 const NGOProfile = () => {
-  const { user } = useAuth()
-  const [formData, setFormData] = useState({ name: '', owner_name: '', age: '', gender: '', address: '', volunteer_count: '' })
+  const { user, updateUser } = useAuth()
+  const [formData, setFormData] = useState({ name: '', owner_name: '', age: '', gender: '', address: '', volunteer_count: '', latitude: '', longitude: '' })
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [loading, setLoading] = useState(false)
+  const [loadingLocation, setLoadingLocation] = useState(false)
   const [toast, setToast] = useState(null)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
 
@@ -416,17 +560,41 @@ const NGOProfile = () => {
     const fetchProfile = async () => {
       try {
         const response = await api.get('/ngo/profile')
-        setFormData({ name: response.data.name || '', owner_name: response.data.owner_name || '', age: response.data.age || '', gender: response.data.gender || '', address: response.data.address || '', volunteer_count: response.data.volunteer_count || '' })
+        setFormData({ name: response.data.name || '', owner_name: response.data.owner_name || '', age: response.data.age || '', gender: response.data.gender || '', address: response.data.address || '', volunteer_count: response.data.volunteer_count || '', latitude: response.data.lat || '', longitude: response.data.lng || '' })
       } catch (error) { console.log('Failed to fetch profile') }
     }
     fetchProfile()
   }, [])
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setToast({ type: 'error', message: 'Geolocation is not supported by your browser' })
+      return
+    }
+    setLoadingLocation(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setFormData({ ...formData, latitude: position.coords.latitude.toFixed(15), longitude: position.coords.longitude.toFixed(15) })
+        setLoadingLocation(false)
+        setToast({ type: 'success', message: 'Location updated successfully' })
+      },
+      (error) => {
+        setLoadingLocation(false)
+        let errorMessage = 'Failed to get location'
+        if (error.code === error.PERMISSION_DENIED) errorMessage = 'Location permission denied. Please enable location access.'
+        else if (error.code === error.POSITION_UNAVAILABLE) errorMessage = 'Location information unavailable.'
+        setToast({ type: 'error', message: errorMessage })
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await api.put('/ngo/profile', formData)
+      const response = await api.put('/ngo/profile', { ...formData, latitude: formData.latitude ? parseFloat(formData.latitude) : null, longitude: formData.longitude ? parseFloat(formData.longitude) : null })
+      if (response.data.ngo) updateUser(response.data.ngo)
       setToast({ type: 'success', message: 'Profile updated successfully' })
     } catch (error) {
       setToast({ type: 'error', message: 'Failed to update profile' })
@@ -455,7 +623,7 @@ const NGOProfile = () => {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">NGO Profile</h1>
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      <div className="card max-w-lg">
+      <div className="card max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-2">NGO Name</label><input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input-field" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-2">Owner Name</label><input type="text" value={formData.owner_name} onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })} className="input-field" /></div>
@@ -466,6 +634,19 @@ const NGOProfile = () => {
           </div>
           <div><label className="block text-sm font-medium text-gray-700 mb-2">Volunteer Count</label><input type="number" value={formData.volunteer_count} onChange={(e) => setFormData({ ...formData, volunteer_count: e.target.value })} className="input-field" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-2">Address</label><textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input-field resize-none" rows="2" /></div>
+          <div className="pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <label className="block text-sm font-medium text-gray-700">Location Coordinates</label>
+              <button type="button" onClick={handleGetLocation} disabled={loadingLocation} className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                {loadingLocation ? (<><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Getting...</>) : (<>📍 Get Current Location</>)}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><label className="block text-xs text-gray-500 mb-1">Latitude</label><input type="number" step="any" value={formData.latitude} onChange={(e) => setFormData({ ...formData, latitude: e.target.value })} className="input-field text-sm" placeholder="e.g., 12.971592847362951" /></div>
+              <div><label className="block text-xs text-gray-500 mb-1">Longitude</label><input type="number" step="any" value={formData.longitude} onChange={(e) => setFormData({ ...formData, longitude: e.target.value })} className="input-field text-sm" placeholder="e.g., 77.594623847362847" /></div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Location is used to calculate distances for blood requests and campaigns.</p>
+          </div>
           <div className="flex gap-4 pt-4"><button type="submit" disabled={loading} className="btn-primary flex-1">{loading ? 'Saving...' : 'Save Changes'}</button><button type="button" onClick={() => setShowPasswordModal(true)} className="btn-secondary">Change Password</button></div>
         </form>
       </div>
