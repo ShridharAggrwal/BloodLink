@@ -336,4 +336,119 @@ router.get('/validate-token/:type/:token', async (req, res) => {
   }
 });
 
+// Forgot Password - Request reset
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Check if user exists in users table
+    const userResult = await pool.query(
+      'SELECT id, name, email FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (userResult.rows.length === 0) {
+      // Don't reveal that email doesn't exist for security
+      return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Delete any existing reset tokens for this user
+    await pool.query('DELETE FROM password_resets WHERE user_id = $1', [user.id]);
+
+    // Generate secure reset token
+    const crypto = require('crypto');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+
+    // Store reset token
+    await pool.query(
+      'INSERT INTO password_resets (user_id, reset_token, expires_at) VALUES ($1, $2, $3)',
+      [user.id, resetToken, expiresAt]
+    );
+
+    // Send reset email
+    const { sendPasswordResetEmail } = require('../services/emailServiceSendGrid');
+    await sendPasswordResetEmail(user.email, resetToken, user.name);
+
+    res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+// Verify Reset Token
+router.get('/verify-reset-token/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const result = await pool.query(
+      `SELECT pr.*, u.email, u.name 
+       FROM password_resets pr
+       JOIN users u ON pr.user_id = u.id
+       WHERE pr.reset_token = $1 AND pr.expires_at > NOW()`,
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ valid: false, error: 'Invalid or expired reset token' });
+    }
+
+    res.json({ valid: true, email: result.rows[0].email });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// Reset Password
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    // Verify token and get user
+    const tokenResult = await pool.query(
+      'SELECT user_id FROM password_resets WHERE reset_token = $1 AND expires_at > NOW()',
+      [token]
+    );
+
+    if (tokenResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    const userId = tokenResult.rows[0].user_id;
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await pool.query(
+      'UPDATE users SET password = $1 WHERE id = $2',
+      [hashedPassword, userId]
+    );
+
+    // Delete used reset token
+    await pool.query('DELETE FROM password_resets WHERE user_id = $1', [userId]);
+
+    res.json({ message: 'Password reset successful. You can now login with your new password.' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
 module.exports = router;

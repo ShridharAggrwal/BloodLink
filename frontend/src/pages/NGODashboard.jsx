@@ -12,6 +12,7 @@ const Sidebar = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { alerts } = useSocket()
+  const [showQuickActions, setShowQuickActions] = useState(false)
 
   const navItems = [
     { path: '/ngo', label: 'Overview', icon: '📊' },
@@ -22,63 +23,130 @@ const Sidebar = () => {
     { path: '/ngo/profile', label: 'Profile', icon: '👤' },
   ]
 
+  const quickActions = [
+    { path: '/ngo/create-campaign', label: 'Create Campaign', icon: '➕', description: 'Start new campaign' },
+    { path: '/ngo/campaigns', label: 'Campaigns', icon: '📅', description: 'Manage campaigns' },
+    { path: '/ngo/alerts', label: 'Alerts', icon: '🔔', description: 'Blood requests', badge: alerts.length },
+    { path: '/ngo/request-blood', label: 'Request Blood', icon: '🩸', description: 'Request donations' },
+    { path: 'logout', label: 'Logout', icon: '🚪', description: 'Sign out from account' },
+  ]
+
   const handleLogout = () => {
     logout()
     navigate('/')
   }
 
+  const handleQuickAction = (path) => {
+    setShowQuickActions(false)
+    if (path === 'logout') {
+      logout()
+      navigate('/')
+    } else {
+      navigate(path)
+    }
+  }
+
   return (
-    <aside className="w-64 bg-white border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-sm">
-      <Link to="/" className="flex items-center gap-2 mb-8 px-2">
-        <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
-          </svg>
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:block w-64 bg-gradient-to-br from-white to-rose-50/30 border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-lg">
+        <Link to="/" className="flex items-center gap-2 mb-8 px-2 group">
+          <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
+            </svg>
+          </div>
+          <span className="text-xl font-bold gradient-text">BloodLink</span>
+        </Link>
+
+        <div className="mb-6 px-2 py-3 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
+          <p className="text-rose-600 text-sm font-medium">NGO Portal</p>
+          <p className="font-bold text-gray-900 truncate">{user?.name}</p>
         </div>
-        <span className="text-xl font-bold text-gray-900">BloodLink</span>
-      </Link>
 
-      <div className="mb-6 px-2">
-        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-lg font-medium">NGO</span>
-        <p className="font-semibold text-gray-900 mt-2 truncate">{user?.name}</p>
-      </div>
+        <nav className="space-y-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${location.pathname === item.path
+                ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105'
+                : 'text-gray-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:text-rose-700'
+                }`}
+            >
+              <span>{item.icon}</span>
+              <span className="font-medium">{item.label}</span>
+              {item.badge > 0 && (
+                <span className={`ml-auto ${location.pathname === item.path ? 'bg-white text-rose-600' : 'bg-red-500 text-white'} text-xs px-2 py-1 rounded-full font-semibold animate-pulse`}>
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          ))}
+        </nav>
 
-      <nav className="space-y-1">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${location.pathname === item.path
-              ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-              : 'text-gray-600 hover:bg-gray-50'
-              }`}
-          >
-            <span>{item.icon}</span>
-            <span>{item.label}</span>
-            {item.badge > 0 && (
-              <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                {item.badge}
-              </span>
-            )}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 mt-8 text-gray-500 hover:text-gray-700 hover:bg-red-50 rounded-xl transition-all duration-300 w-full group"
+        >
+          <span>🚪</span>
+          <span className="font-medium">Logout</span>
+        </button>
+      </aside>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        <div className="flex justify-around items-center">
+          <Link to="/ngo" className={`flex flex-col items-center gap-1 px-4 py-3 transition-all duration-300 ${location.pathname === '/ngo' ? 'text-rose-600' : 'text-gray-600'}`}>
+            <span className="text-2xl">📊</span>
+            <span className="text-xs font-medium">Overview</span>
           </Link>
-        ))}
+          <button onClick={() => setShowQuickActions(true)} className="flex flex-col items-center gap-1 px-4 py-3 -mt-6 transition-all duration-300">
+            <div className="w-14 h-14 bg-gradient-to-r from-rose-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/30 hover:scale-110 transition-transform">
+              <span className="text-white text-2xl font-bold">+</span>
+            </div>
+          </button>
+          <Link to="/ngo/profile" className={`flex flex-col items-center gap-1 px-4 py-3 transition-all duration-300 ${location.pathname === '/ngo/profile' ? 'text-rose-600' : 'text-gray-600'}`}>
+            <span className="text-2xl">👤</span>
+            <span className="text-xs font-medium">Profile</span>
+          </Link>
+        </div>
       </nav>
 
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 px-4 py-3 mt-8 text-gray-500 hover:text-gray-700 transition-colors w-full"
-      >
-        <span>🚪</span>
-        <span>Logout</span>
-      </button>
-    </aside>
+      {/* Quick Actions Modal */}
+      {showQuickActions && (
+        <div className="md:hidden fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowQuickActions(false)}>
+          <div className="bg-white rounded-t-3xl w-full p-6 pb-8 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            <h3 className="text-xl font-bold gradient-text mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {quickActions.map((action) => (
+                <button key={action.path} onClick={() => handleQuickAction(action.path)} className="relative p-4 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 hover:shadow-lg transition-all duration-300 text-left">
+                  {action.badge > 0 && <span className="absolute top-2 right-2 bg-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-semibold animate-pulse">{action.badge}</span>}
+                  <div className="text-3xl mb-2">{action.icon}</div>
+                  <div className="font-semibold text-gray-900 text-sm">{action.label}</div>
+                  <div className="text-xs text-gray-500 mt-1">{action.description}</div>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowQuickActions(false)} className="w-full mt-4 py-3 text-gray-600 font-medium hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
 // Overview Section
 const Overview = () => {
   const { alerts } = useSocket()
-  const [stats, setStats] = useState({ activeCampaigns: 0, totalCampaigns: 0, volunteerCount: 0 })
+  const [stats, setStats] = useState({
+    activeCampaigns: 0,
+    totalCampaigns: 0,
+    volunteerCount: 0,
+    campaignsCount: 0,
+    bloodRequestsAccepted: 0
+  })
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -94,42 +162,52 @@ const Overview = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">NGO Dashboard</h1>
+      <h1 className="text-3xl font-bold gradient-text mb-2">NGO Dashboard</h1>
+      <p className="text-gray-600 mb-8">Manage your campaigns and help save lives</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card">
-          <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-2xl mb-3">📅</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.activeCampaigns}</div>
-          <div className="text-gray-500">Active Campaigns</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="dashboard-card group hover:scale-105">
+          <div className="stat-card-icon bg-gradient-to-br from-green-100 to-emerald-100 text-green-600 group-hover:scale-110 transition-transform">📅</div>
+          <div className="text-3xl font-bold gradient-text mb-1">{stats.activeCampaigns}</div>
+          <div className="text-gray-600 font-medium">Active Campaigns</div>
+          <div className="mt-3 text-xs text-green-600 font-semibold">Ongoing Events</div>
         </div>
-        <div className="card">
-          <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-2xl mb-3">👥</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.volunteerCount}</div>
-          <div className="text-gray-500">Volunteers</div>
+        <div className="dashboard-card group hover:scale-105">
+          <div className="stat-card-icon bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 group-hover:scale-110 transition-transform">🎯</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{stats.campaignsCount}</div>
+          <div className="text-gray-600 font-medium">Campaigns Created</div>
+          <div className="mt-3 text-xs text-rose-600 font-semibold">Total Events</div>
         </div>
-        <div className="card">
-          <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-2xl mb-3">🔔</div>
-          <div className="text-2xl font-bold text-gray-900">{alerts.length}</div>
-          <div className="text-gray-500">Blood Alerts</div>
+        <div className="dashboard-card group hover:scale-105">
+          <div className="stat-card-icon bg-gradient-to-br from-purple-100 to-violet-100 text-purple-600 group-hover:scale-110 transition-transform">🩸</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{stats.bloodRequestsAccepted}</div>
+          <div className="text-gray-600 font-medium">Requests Fulfilled</div>
+          <div className="mt-3 text-xs text-purple-600 font-semibold">Lives Saved</div>
+        </div>
+        <div className="dashboard-card group hover:scale-105">
+          <div className="stat-card-icon bg-gradient-to-br from-sky-100 to-cyan-100 text-sky-600 group-hover:scale-110 transition-transform">👥</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{stats.volunteerCount}</div>
+          <div className="text-gray-600 font-medium">Volunteers</div>
+          <div className="mt-3 text-xs text-sky-600 font-semibold">Team Members</div>
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <Link to="/ngo/create-campaign" className="card hover:border-red-200 transition-colors">
+        <Link to="/ngo/create-campaign" className="dashboard-card hover:border-rose-200 transition-all">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-2xl">➕</div>
+            <div className="w-12 h-12 bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 rounded-xl flex items-center justify-center text-2xl shadow-md">➕</div>
             <div>
-              <h3 className="font-semibold text-gray-900">Create Campaign</h3>
+              <h3 className="font-bold text-gray-900">Create Campaign</h3>
               <p className="text-gray-500 text-sm">Start a new blood donation campaign</p>
             </div>
           </div>
         </Link>
 
-        <Link to="/ngo/campaigns" className="card hover:border-blue-200 transition-colors">
+        <Link to="/ngo/campaigns" className="dashboard-card hover:border-sky-200 transition-all">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-2xl">📋</div>
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-100 to-cyan-100 text-sky-600 rounded-xl flex items-center justify-center text-2xl shadow-md">📋</div>
             <div>
-              <h3 className="font-semibold text-gray-900">View Campaigns</h3>
+              <h3 className="font-bold text-gray-900">View Campaigns</h3>
               <p className="text-gray-500 text-sm">Manage your existing campaigns</p>
             </div>
           </div>
@@ -137,19 +215,20 @@ const Overview = () => {
       </div>
 
       {alerts.length > 0 && (
-        <div className="card mt-6 border-red-200 bg-red-50/50">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Recent Blood Requests
+        <div className="dashboard-card mt-6 border-rose-200 bg-gradient-to-br from-red-50 to-rose-50">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+            <span className="gradient-text">Recent Blood Requests</span>
           </h2>
           <div className="space-y-3">
             {alerts.slice(0, 3).map((alert) => (
-              <div key={alert.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100">
+              <div key={alert.id} className="flex items-center justify-between bg-white p-4 rounded-xl border border-rose-100 hover:shadow-lg transition-shadow">
                 <div>
-                  <span className="font-semibold text-red-600">{alert.blood_group}</span>
-                  <span className="text-gray-500 ml-2">- {alert.units_needed} unit(s)</span>
-                  <p className="text-sm text-gray-400">{alert.address}</p>
+                  <span className="text-2xl font-bold gradient-text">{alert.blood_group}</span>
+                  <span className="text-gray-500 ml-2 font-medium">- {alert.units_needed} unit(s)</span>
+                  <p className="text-sm text-gray-500 mt-1">📍 {alert.address}</p>
                 </div>
-                <Link to="/ngo/alerts" className="btn-primary text-sm py-2 px-4">View</Link>
+                <Link to="/ngo/alerts" className="btn-action text-sm py-2 px-5">View Details</Link>
               </div>
             ))}
           </div>
@@ -164,6 +243,7 @@ const Campaigns = () => {
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
+  const [endModal, setEndModal] = useState({ open: false, campaign: null, bloodUnits: '' })
 
   const fetchCampaigns = async () => {
     try {
@@ -178,13 +258,21 @@ const Campaigns = () => {
 
   useEffect(() => { fetchCampaigns() }, [])
 
-  const handleStatusChange = async (id, status) => {
+  const handleEndCampaign = async () => {
+    if (!endModal.bloodUnits || endModal.bloodUnits < 0) {
+      setToast({ type: 'error', message: 'Please enter valid blood units collected' })
+      return
+    }
+
     try {
-      await api.put(`/ngo/campaigns/${id}`, { status })
-      setToast({ type: 'success', message: 'Campaign status updated' })
+      await api.put(`/ngo/campaigns/${endModal.campaign.id}/end`, {
+        blood_units_collected: parseInt(endModal.bloodUnits)
+      })
+      setToast({ type: 'success', message: `Campaign ended! ${endModal.bloodUnits} units collected.` })
+      setEndModal({ open: false, campaign: null, bloodUnits: '' })
       fetchCampaigns()
     } catch (error) {
-      setToast({ type: 'error', message: 'Failed to update campaign' })
+      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to end campaign' })
     }
   }
 
@@ -211,24 +299,88 @@ const Campaigns = () => {
           {campaigns.map((campaign) => (
             <div key={campaign.id} className="card">
               <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{campaign.title}</h3>
-                  <p className="text-gray-500">{campaign.address}</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900">{campaign.title}</h3>
+                    {campaign.health_checkup_available && (
+                      <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg flex items-center gap-1">
+                        ⚕️ Health Checkup
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-500">📍 {campaign.address}</p>
                   <p className="text-sm text-gray-400 mt-2">
-                    {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
+                    🗓 {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
                   </p>
+                  {campaign.status === 'ended' && campaign.blood_units_collected !== null && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="px-3 py-1 bg-green-50 text-green-600 text-sm font-semibold rounded-lg">
+                        🩸 {campaign.blood_units_collected} units collected
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Ended on {new Date(campaign.ended_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${campaign.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
-                    {campaign.status}
+                  <span className={`px-3 py-1 rounded-lg text-sm font-medium ${campaign.status === 'active'
+                      ? 'bg-green-50 text-green-600'
+                      : 'bg-gray-100 text-gray-500'
+                    }`}>
+                    {campaign.status === 'active' ? '✓ Active' : '⏹ Ended'}
                   </span>
-                  <button onClick={() => handleStatusChange(campaign.id, campaign.status === 'active' ? 'ended' : 'active')} className="btn-secondary text-sm py-2">
-                    {campaign.status === 'active' ? 'End' : 'Reactivate'}
-                  </button>
+                  {campaign.status === 'active' && (
+                    <button
+                      onClick={() => setEndModal({ open: true, campaign, bloodUnits: '' })}
+                      className="bg-rose-50 text-rose-600 hover:bg-rose-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      End Campaign
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* End Campaign Modal */}
+      {endModal.open && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEndModal({ open: false, campaign: null, bloodUnits: '' })}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">End Campaign</h2>
+            <p className="text-gray-600 mb-6">How many blood units were collected during <span className="font-semibold">{endModal.campaign?.title}</span>?</p>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Blood Units Collected *</label>
+              <input
+                type="number"
+                min="0"
+                value={endModal.bloodUnits}
+                onChange={(e) => setEndModal({ ...endModal, bloodUnits: e.target.value })}
+                className="input-field"
+                placeholder="Enter number of units"
+                autoFocus
+              />
+              <p className="text-xs text-gray-500 mt-1">This information is mandatory to complete the campaign</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEndModal({ open: false, campaign: null, bloodUnits: '' })}
+                className="flex-1 btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEndCampaign}
+                className="flex-1 btn-primary"
+              >
+                End Campaign
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -238,7 +390,15 @@ const Campaigns = () => {
 // Create Campaign Section
 const CreateCampaign = () => {
   const navigate = useNavigate()
-  const [formData, setFormData] = useState({ title: '', address: '', start_date: '', end_date: '', latitude: '', longitude: '' })
+  const [formData, setFormData] = useState({
+    title: '',
+    address: '',
+    start_date: '',
+    end_date: '',
+    latitude: '',
+    longitude: '',
+    health_checkup_available: false
+  })
   const [loading, setLoading] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
   const [toast, setToast] = useState(null)
@@ -383,6 +543,23 @@ const CreateCampaign = () => {
               <input type="datetime-local" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="input-field" required />
             </div>
           </div>
+
+          {/* Health Checkup */}
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-4 rounded-xl border border-blue-100">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.health_checkup_available}
+                onChange={(e) => setFormData({ ...formData, health_checkup_available: e.target.checked })}
+                className="w-5 h-5 text-rose-600 border-gray-300 rounded focus:ring-rose-500 cursor-pointer"
+              />
+              <div className="ml-3">
+                <span className="text-sm font-semibold text-gray-900">⚕️ Free Health Checkup Available</span>
+                <p className="text-xs text-gray-600 mt-1">Offer free health checkups to donors at this campaign</p>
+              </div>
+            </label>
+          </div>
+
           <button type="submit" disabled={loading} className="btn-primary w-full">{loading ? 'Creating...' : 'Create Campaign'}</button>
         </form>
       </div>
@@ -667,7 +844,7 @@ const NGODashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <main className="ml-64 p-8">
+      <main className="md:ml-64 p-4 md:p-8 pb-20 md:pb-8">
         <Routes>
           <Route index element={<Overview />} />
           <Route path="campaigns" element={<Campaigns />} />

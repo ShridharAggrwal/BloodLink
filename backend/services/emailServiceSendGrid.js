@@ -13,7 +13,7 @@ if (process.env.SENDGRID_API_KEY) {
 const sendVerificationEmail = async (email, token) => {
   try {
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${token}`;
-    
+
     const msg = {
       to: email,
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -46,7 +46,7 @@ const sendSignupTokenEmail = async (email, token, type) => {
   try {
     const signupUrl = `${process.env.FRONTEND_URL}/register/${type}/${token}`;
     const typeLabel = type === 'ngo' ? 'NGO' : 'Blood Bank';
-    
+
     const msg = {
       to: email,
       from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
@@ -108,9 +108,76 @@ const sendBloodRequestAlert = async (email, request) => {
   }
 };
 
+const sendPasswordResetEmail = async (email, resetToken, name) => {
+  try {
+    const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
+    const msg = {
+      to: email,
+      from: process.env.EMAIL_FROM,
+      subject: 'Password Reset Request - BloodLink',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #f43f5e 0%, #ec4899 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; background: linear-gradient(135deg, #f43f5e 0%, #ec4899 100%); color: white !important; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+            .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px; }
+            .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🩸 BloodLink</h1>
+              <p>Password Reset Request</p>
+            </div>
+            <div class="content">
+              <p>Hello ${name},</p>
+              <p>We received a request to reset your password for your BloodLink account. Click the button below to create a new password:</p>
+              <center>
+                <a href="${resetURL}" class="button">Reset Password</a>
+              </center>
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; color: #6b7280;">${resetURL}</p>
+              <div class="warning">
+                <strong>⚠️ Important:</strong>
+                <ul>
+                  <li>This link will expire in 1 hour</li>
+                  <li>If you didn't request this, please ignore this email</li>
+                  <li>Never share this link with anyone</li>
+                </ul>
+              </div>
+              <p>If you have any questions, feel free to contact our support team.</p>
+              <p>Best regards,<br>The BloodLink Team</p>
+            </div>
+            <div class="footer">
+              <p>© 2026 BloodLink. Saving lives, one donation at a time.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    await sgMail.send(msg);
+    console.log('✅ Password reset email sent to:', email);
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Failed to send password reset email to:', email);
+    console.error('Error details:', error.response?.body || error.message);
+    throw new Error('Failed to send password reset email');
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendSignupTokenEmail,
   sendBloodRequestAlert,
+  sendPasswordResetEmail,
 };
 

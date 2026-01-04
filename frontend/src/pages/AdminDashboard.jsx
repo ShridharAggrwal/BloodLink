@@ -10,6 +10,7 @@ const Sidebar = () => {
   const location = useLocation()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [showQuickActions, setShowQuickActions] = useState(false)
 
   const navItems = [
     { path: '/admin', label: 'Overview', icon: '📊' },
@@ -21,51 +22,111 @@ const Sidebar = () => {
     { path: '/admin/profile', label: 'Profile', icon: '👤' },
   ]
 
+  const quickActions = [
+    { path: '/admin/generate-token', label: 'Generate Token', icon: '🔗', description: 'Create access tokens' },
+    { path: '/admin/users', label: 'Manage Users', icon: '👥', description: 'View all users' },
+    { path: '/admin/ngos', label: 'Manage NGOs', icon: '🤝', description: 'NGO management' },
+    { path: '/admin/blood-banks', label: 'Blood Banks', icon: '🏥', description: 'Manage blood banks' },
+    { path: 'logout', label: 'Logout', icon: '🚪', description: 'Sign out from admin' },
+  ]
+
   const handleLogout = () => {
     logout()
     navigate('/')
   }
 
+  const handleQuickAction = (path) => {
+    setShowQuickActions(false)
+    if (path === 'logout') {
+      logout()
+      navigate('/')
+    } else {
+      navigate(path)
+    }
+  }
+
   return (
-    <aside className="w-64 bg-white border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-sm">
-      <Link to="/" className="flex items-center gap-2 mb-8 px-2">
-        <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
-          </svg>
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:block w-64 bg-gradient-to-br from-white to-rose-50/30 border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-lg">
+        <Link to="/" className="flex items-center gap-2 mb-8 px-2 group">
+          <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
+            </svg>
+          </div>
+          <span className="text-xl font-bold gradient-text">BloodLink</span>
+        </Link>
+
+        <div className="mb-6 px-2 py-3 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
+          <p className="text-rose-600 text-sm font-medium">Admin Portal</p>
+          <p className="font-bold text-gray-900 truncate">{user?.name}</p>
         </div>
-        <span className="text-xl font-bold text-gray-900">BloodLink</span>
-      </Link>
 
-      <div className="mb-6 px-2">
-        <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded-lg font-medium">Admin</span>
-        <p className="font-semibold text-gray-900 mt-2 truncate">{user?.name}</p>
-      </div>
+        <nav className="space-y-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${location.pathname === item.path
+                ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105'
+                : 'text-gray-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:text-rose-700'
+                }`}
+            >
+              <span>{item.icon}</span>
+              <span className="font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
 
-      <nav className="space-y-1">
-        {navItems.map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${location.pathname === item.path
-              ? 'bg-red-600 text-white shadow-lg shadow-red-600/20'
-              : 'text-gray-600 hover:bg-gray-50'
-              }`}
-          >
-            <span>{item.icon}</span>
-            <span>{item.label}</span>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 mt-8 text-gray-500 hover:text-gray-700 hover:bg-red-50 rounded-xl transition-all duration-300 w-full group"
+        >
+          <span>🚪</span>
+          <span className="font-medium">Logout</span>
+        </button>
+      </aside>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        <div className="flex justify-around items-center">
+          <Link to="/admin" className={`flex flex-col items-center gap-1 px-4 py-3 transition-all duration-300 ${location.pathname === '/admin' ? 'text-rose-600' : 'text-gray-600'}`}>
+            <span className="text-2xl">📊</span>
+            <span className="text-xs font-medium">Overview</span>
           </Link>
-        ))}
+          <button onClick={() => setShowQuickActions(true)} className="flex flex-col items-center gap-1 px-4 py-3 -mt-6 transition-all duration-300">
+            <div className="w-14 h-14 bg-gradient-to-r from-rose-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/30 hover:scale-110 transition-transform">
+              <span className="text-white text-2xl font-bold">+</span>
+            </div>
+          </button>
+          <Link to="/admin/profile" className={`flex flex-col items-center gap-1 px-4 py-3 transition-all duration-300 ${location.pathname === '/admin/profile' ? 'text-rose-600' : 'text-gray-600'}`}>
+            <span className="text-2xl">👤</span>
+            <span className="text-xs font-medium">Profile</span>
+          </Link>
+        </div>
       </nav>
 
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 px-4 py-3 mt-8 text-gray-500 hover:text-gray-700 transition-colors w-full"
-      >
-        <span>🚪</span>
-        <span>Logout</span>
-      </button>
-    </aside>
+      {/* Quick Actions Modal */}
+      {showQuickActions && (
+        <div className="md:hidden fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowQuickActions(false)}>
+          <div className="bg-white rounded-t-3xl w-full p-6 pb-8 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            <h3 className="text-xl font-bold gradient-text mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {quickActions.map((action) => (
+                <button key={action.path} onClick={() => handleQuickAction(action.path)} className="relative p-4 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 hover:shadow-lg transition-all duration-300 text-left">
+                  <div className="text-3xl mb-2">{action.icon}</div>
+                  <div className="font-semibold text-gray-900 text-sm">{action.label}</div>
+                  <div className="text-xs text-gray-500 mt-1">{action.description}</div>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowQuickActions(false)} className="w-full mt-4 py-3 text-gray-600 font-medium hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -91,24 +152,26 @@ const Overview = () => {
   }, [])
 
   const statCards = [
-    { label: 'Approved Users', value: stats.approvedUsers, icon: '👥', color: 'bg-blue-50 text-blue-600' },
-    { label: 'Approved NGOs', value: stats.approvedNgos, icon: '🤝', color: 'bg-green-50 text-green-600' },
-    { label: 'Approved Blood Banks', value: stats.approvedBloodBanks, icon: '🏥', color: 'bg-purple-50 text-purple-600' },
-    { label: 'Total Donations', value: stats.totalDonations, icon: '❤️', color: 'bg-red-50 text-red-600' },
+    { label: 'Approved Users', value: stats.approvedUsers, icon: '👥', gradient: 'from-blue-100 to-cyan-100', textColor: 'text-blue-600', desc: 'Registered Members' },
+    { label: 'Approved NGOs', value: stats.approvedNgos, icon: '🤝', gradient: 'from-green-100 to-emerald-100', textColor: 'text-green-600', desc: 'Active Organizations' },
+    { label: 'Approved Blood Banks', value: stats.approvedBloodBanks, icon: '🏥', gradient: 'from-purple-100 to-violet-100', textColor: 'text-purple-600', desc: 'Verified Facilities' },
+    { label: 'Total Donations', value: stats.totalDonations, icon: '❤️', gradient: 'from-rose-100 to-pink-100', textColor: 'text-rose-600', desc: 'Lives Saved' },
   ]
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+      <h1 className="text-3xl font-bold gradient-text mb-2">Admin Dashboard</h1>
+      <p className="text-gray-600 mb-8">Manage and monitor the BloodLink platform</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statCards.map((stat) => (
-          <div key={stat.label} className="card">
-            <div className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center text-xl mb-4`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat, index) => (
+          <div key={stat.label} className="dashboard-card group hover:scale-105">
+            <div className={`stat-card-icon bg-gradient-to-br ${stat.gradient} ${stat.textColor} group-hover:scale-110 transition-transform`}>
               {stat.icon}
             </div>
-            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-            <div className="text-gray-500">{stat.label}</div>
+            <div className="text-3xl font-bold gradient-text mb-1">{stat.value}</div>
+            <div className="text-gray-600 font-medium">{stat.label}</div>
+            <div className={`mt-3 text-xs ${stat.textColor} font-semibold`}>{stat.desc}</div>
           </div>
         ))}
       </div>
@@ -301,75 +364,70 @@ const UsersList = () => {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Users ({users.length})</h1>
+      <h1 className="text-3xl font-bold gradient-text mb-2">Users ({users.length})</h1>
+      <p className="text-gray-600 mb-6">Manage registered users</p>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      <div className="card overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-100">
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Name</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Email</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Blood Group</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Status</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Joined</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-500">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="border-b border-gray-50">
-                <td className="py-3 px-4 text-gray-900">{user.name}</td>
-                <td className="py-3 px-4 text-gray-500">{user.email}</td>
-                <td className="py-3 px-4">
-                  <span className="text-red-600 font-semibold">{user.blood_group || '-'}</span>
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${user.is_verified ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'
-                      }`}>
-                      {user.is_verified ? 'Verified' : 'Not Verified'}
-                    </span>
-                    {user.status === 'suspended' && (
-                      <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600">
-                        Suspended
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-gray-400 text-sm">
-                  {new Date(user.created_at).toLocaleDateString()}
-                </td>
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    {user.status === 'suspended' ? (
-                      <button
-                        onClick={() => handleActivate(user.id)}
-                        className="text-green-600 hover:text-green-700 text-sm font-medium"
-                      >
-                        Activate
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleSuspend(user.id)}
-                        className="text-yellow-600 hover:text-yellow-700 text-sm font-medium"
-                      >
-                        Suspend
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setConfirmModal({ open: true, type: 'user', id: user.id, name: user.name })}
-                      className="text-red-600 hover:text-red-700 text-sm font-medium"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {users.map((user) => (
+          <div key={user.id} className="dashboard-card hover:border-rose-200 transition-all">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center text-rose-600 font-bold text-lg flex-shrink-0">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-gray-900 truncate">{user.name}</h3>
+                <p className="text-sm text-gray-500 truncate">{user.email}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Blood Group:</span>
+                <span className="text-sm font-semibold text-red-600">{user.blood_group || 'Not set'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Joined:</span>
+                <span className="text-sm text-gray-700">{new Date(user.created_at).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${user.is_verified ? 'bg-green-50 text-green-600' : 'bg-yellow-50 text-yellow-600'}`}>
+                  {user.is_verified ? '✓ Verified' : '⚠ Not Verified'}
+                </span>
+                {user.status === 'suspended' && (
+                  <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600">
+                    🚫 Suspended
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-3 border-t border-gray-100">
+              {user.status === 'suspended' ? (
+                <button
+                  onClick={() => handleActivate(user.id)}
+                  className="flex-1 bg-green-50 text-green-600 hover:bg-green-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  ✓ Activate
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSuspend(user.id)}
+                  className="flex-1 bg-yellow-50 text-yellow-600 hover:bg-yellow-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  ⚠ Suspend
+                </button>
+              )}
+              <button
+                onClick={() => setConfirmModal({ open: true, type: 'user', id: user.id, name: user.name })}
+                className="flex-1 bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                🗑 Delete
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Delete Confirmation Modal */}
@@ -394,8 +452,8 @@ const UsersList = () => {
             </button>
           </div>
         </div>
-      </Modal>
-    </div>
+      </Modal >
+    </div >
   )
 }
 
@@ -774,12 +832,13 @@ const AdminRequestBlood = () => {
 
       <div className="card max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">Blood Group Needed</label>
             <select
               value={formData.blood_group}
               onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
-              className="input-field"
+              className="input-field w-full appearance-none pr-10"
+              style={{ backgroundImage: 'none' }}
               required
             >
               <option value="">Select Blood Group</option>
@@ -787,6 +846,11 @@ const AdminRequestBlood = () => {
                 <option key={bg} value={bg}>{bg}</option>
               ))}
             </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 pt-6">
+              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </div>
           </div>
 
           <div>
@@ -1185,7 +1249,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <main className="ml-64 p-8">
+      <main className="md:ml-64 p-4 md:p-8 pb-20 md:pb-8">
         <Routes>
           <Route index element={<Overview />} />
           <Route path="generate-token" element={<GenerateToken />} />

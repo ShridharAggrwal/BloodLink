@@ -7,6 +7,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import RegisterWithToken from './pages/RegisterWithToken'
 import VerifyEmail from './pages/VerifyEmail'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import UserDashboard from './pages/UserDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import NGODashboard from './pages/NGODashboard'
@@ -53,16 +55,18 @@ function App() {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Home />} />
-      <Route 
-        path="/login" 
-        element={user ? <Navigate to={getDashboardRoute()} replace /> : <Login />} 
+      <Route
+        path="/login"
+        element={user ? <Navigate to={getDashboardRoute()} replace /> : <Login />}
       />
-      <Route 
-        path="/register" 
-        element={user ? <Navigate to={getDashboardRoute()} replace /> : <Register />} 
+      <Route
+        path="/register"
+        element={user ? <Navigate to={getDashboardRoute()} replace /> : <Register />}
       />
       <Route path="/register/:type/:token" element={<RegisterWithToken />} />
       <Route path="/verify-email/:token" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       {/* User Dashboard */}
       <Route

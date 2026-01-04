@@ -13,6 +13,7 @@ const Sidebar = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { alerts } = useSocket()
+  const [showQuickActions, setShowQuickActions] = useState(false)
 
   const navItems = [
     { path: '/dashboard', label: 'Overview', icon: '📊' },
@@ -24,57 +25,147 @@ const Sidebar = () => {
     { path: '/dashboard/profile', label: 'Profile', icon: '👤' },
   ]
 
+  // Quick action items (shown in modal on mobile)
+  const quickActions = [
+    { path: '/dashboard/request-blood', label: 'Request Blood', icon: '🩸', description: 'Create blood request' },
+    { path: '/dashboard/donate', label: 'Donate Blood', icon: '💉', description: 'Help save lives' },
+    { path: '/dashboard/alerts', label: 'Alerts', icon: '🔔', description: 'View urgent requests', badge: alerts.length },
+    { path: '/dashboard/nearby', label: 'Nearby', icon: '📍', description: 'Find nearby resources' },
+    { path: '/dashboard/history', label: 'History', icon: '📋', description: 'View your activity' },
+    { path: 'logout', label: 'Logout', icon: '🚪', description: 'Sign out from account' },
+  ]
+
   const handleLogout = () => {
     logout()
     navigate('/')
   }
 
+  const handleQuickAction = (path) => {
+    setShowQuickActions(false)
+    if (path === 'logout') {
+      logout()
+      navigate('/')
+    } else {
+      navigate(path)
+    }
+  }
+
   return (
-    <aside className="w-64 bg-gradient-to-br from-white to-rose-50/30 border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-lg">
-      <Link to="/" className="flex items-center gap-2 mb-8 px-2 group">
-        <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform">
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
-          </svg>
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:block w-64 bg-gradient-to-br from-white to-rose-50/30 border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-lg">
+        <Link to="/" className="flex items-center gap-2 mb-8 px-2 group">
+          <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" />
+            </svg>
+          </div>
+          <span className="text-xl font-bold gradient-text">BloodLink</span>
+        </Link>
+
+        <div className="mb-6 px-2 py-3 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
+          <p className="text-rose-600 text-sm font-medium">Welcome back,</p>
+          <p className="font-bold text-gray-900 truncate">{user?.name}</p>
+          <p className="text-xs text-gray-500 mt-1">Blood Group: <span className="gradient-text font-semibold">{user?.blood_group}</span></p>
         </div>
-        <span className="text-xl font-bold gradient-text">BloodLink</span>
-      </Link>
 
-      <div className="mb-6 px-2 py-3 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
-        <p className="text-rose-600 text-sm font-medium">Welcome back,</p>
-        <p className="font-bold text-gray-900 truncate">{user?.name}</p>
-        <p className="text-xs text-gray-500 mt-1">Blood Group: <span className="gradient-text font-semibold">{user?.blood_group}</span></p>
-      </div>
+        <nav className="space-y-1">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${location.pathname === item.path
+                ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105'
+                : 'text-gray-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:text-rose-700'
+                }`}
+            >
+              <span>{item.icon}</span>
+              <span className="font-medium">{item.label}</span>
+              {item.badge > 0 && (
+                <span className={`ml-auto ${location.pathname === item.path ? 'bg-white text-rose-600' : 'bg-red-500 text-white'} text-xs px-2 py-1 rounded-full font-semibold animate-pulse`}>
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          ))}
+        </nav>
 
-      <nav className="space-y-1">
-        {navItems.map((item) => (
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 mt-8 text-gray-500 hover:text-gray-700 hover:bg-red-50 rounded-xl transition-all duration-300 w-full group"
+        >
+          <span>🚪</span>
+          <span className="font-medium">Logout</span>
+        </button>
+      </aside>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        <div className="flex justify-around items-center">
+          {/* Overview */}
           <Link
-            key={item.path}
-            to={item.path}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${location.pathname === item.path
-              ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105'
-              : 'text-gray-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:text-rose-700'
-              }`}
+            to="/dashboard"
+            className={`flex flex-col items-center gap-1 px-4 py-3 transition-all duration-300 ${location.pathname === '/dashboard' ? 'text-rose-600' : 'text-gray-600'}`}
           >
-            <span>{item.icon}</span>
-            <span className="font-medium">{item.label}</span>
-            {item.badge > 0 && (
-              <span className={`ml-auto ${location.pathname === item.path ? 'bg-white text-rose-600' : 'bg-red-500 text-white'} text-xs px-2 py-1 rounded-full font-semibold animate-pulse`}>
-                {item.badge}
-              </span>
-            )}
+            <span className="text-2xl">📊</span>
+            <span className="text-xs font-medium">Overview</span>
           </Link>
-        ))}
+
+          {/* Quick Actions Button (Centered, Instagram-style) */}
+          <button
+            onClick={() => setShowQuickActions(true)}
+            className="flex flex-col items-center gap-1 px-4 py-3 -mt-6 transition-all duration-300"
+          >
+            <div className="w-14 h-14 bg-gradient-to-r from-rose-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/30 hover:scale-110 transition-transform">
+              <span className="text-white text-2xl font-bold">+</span>
+            </div>
+          </button>
+
+          {/* Profile */}
+          <Link
+            to="/dashboard/profile"
+            className={`flex flex-col items-center gap-1 px-4 py-3 transition-all duration-300 ${location.pathname === '/dashboard/profile' ? 'text-rose-600' : 'text-gray-600'}`}
+          >
+            <span className="text-2xl">👤</span>
+            <span className="text-xs font-medium">Profile</span>
+          </Link>
+        </div>
       </nav>
 
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 px-4 py-3 mt-8 text-gray-500 hover:text-gray-700 hover:bg-red-50 rounded-xl transition-all duration-300 w-full group"
-      >
-        <span>🚪</span>
-        <span className="font-medium">Logout</span>
-      </button>
-    </aside>
+      {/* Quick Actions Modal */}
+      {showQuickActions && (
+        <div className="md:hidden fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowQuickActions(false)}>
+          <div className="bg-white rounded-t-3xl w-full p-6 pb-8 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            <h3 className="text-xl font-bold gradient-text mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {quickActions.map((action) => (
+                <button
+                  key={action.path}
+                  onClick={() => handleQuickAction(action.path)}
+                  className="relative p-4 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 hover:shadow-lg transition-all duration-300 text-left"
+                >
+                  {action.badge > 0 && (
+                    <span className="absolute top-2 right-2 bg-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-semibold animate-pulse">
+                      {action.badge}
+                    </span>
+                  )}
+                  <div className="text-3xl mb-2">{action.icon}</div>
+                  <div className="font-semibold text-gray-900 text-sm">{action.label}</div>
+                  <div className="text-xs text-gray-500 mt-1">{action.description}</div>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowQuickActions(false)}
+              className="w-full mt-4 py-3 text-gray-600 font-medium hover:bg-gray-50 rounded-xl transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -711,12 +802,23 @@ const Nearby = () => {
           ) : (
             data.campaigns.map((campaign) => (
               <div key={campaign.id} className="card">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{campaign.title}</h3>
-                <p className="text-gray-500 mb-2">by {campaign.ngo_name}</p>
-                <p className="text-sm text-gray-400">{campaign.address}</p>
-                <p className="text-sm text-gray-400">
-                  {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
-                </p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">{campaign.title}</h3>
+                      {campaign.health_checkup_available && (
+                        <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg flex items-center gap-1">
+                          ⚕️ Free Health Checkup
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-500 mb-2">by {campaign.ngo_name}</p>
+                    <p className="text-sm text-gray-400">📍 {campaign.address}</p>
+                    <p className="text-sm text-gray-400">
+                      🗓 {new Date(campaign.start_date).toLocaleDateString()} - {new Date(campaign.end_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
               </div>
             ))
           )}
@@ -1069,7 +1171,7 @@ const UserDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <main className="ml-64 p-8">
+      <main className="md:ml-64 p-4 md:p-8 pb-20 md:pb-8">
         <Routes>
           <Route index element={<Overview />} />
           <Route path="request-blood" element={<RequestBlood />} />

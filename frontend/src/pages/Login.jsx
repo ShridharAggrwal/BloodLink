@@ -104,8 +104,8 @@ const Login = () => {
                         type="button"
                         onClick={() => setFormData({ ...formData, role: role.value })}
                         className={`py-2.5 px-3 rounded-xl border-2 text-sm font-semibold transition-all duration-300 ${formData.role === role.value
-                            ? 'bg-gradient-to-r from-rose-500 to-pink-600 border-transparent text-white shadow-lg shadow-pink-500/30'
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-rose-300 hover:bg-rose-50/50'
+                          ? 'bg-gradient-to-r from-rose-500 to-pink-600 border-transparent text-white shadow-lg shadow-pink-500/30'
+                          : 'bg-white border-gray-200 text-gray-600 hover:border-rose-300 hover:bg-rose-50/50'
                           }`}
                       >
                         {role.label}
@@ -140,6 +140,14 @@ const Login = () => {
                     placeholder="Enter your password"
                     required
                   />
+                  <div className="text-right mt-2">
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm text-rose-600 hover:text-rose-700 font-medium transition-colors"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Submit */}

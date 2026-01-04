@@ -12,6 +12,7 @@ const Sidebar = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { alerts } = useSocket()
+  const [showQuickActions, setShowQuickActions] = useState(false)
 
   const navItems = [
     { path: '/blood-bank', label: 'Overview', icon: '📊' },
@@ -21,39 +22,99 @@ const Sidebar = () => {
     { path: '/blood-bank/profile', label: 'Profile', icon: '👤' },
   ]
 
+  const quickActions = [
+    { path: '/blood-bank/stock', label: 'Blood Stock', icon: '🩸', description: 'Manage inventory' },
+    { path: '/blood-bank/requests', label: 'View Requests', icon: '📋', description: 'Nearby requests', badge: alerts.length },
+    { path: '/blood-bank/request-blood', label: 'Request Blood', icon: '📣', description: 'Request donations' },
+    { path: 'logout', label: 'Logout', icon: '🚪', description: 'Sign out from account' },
+  ]
+
   const handleLogout = () => { logout(); navigate('/') }
 
+  const handleQuickAction = (path) => {
+    setShowQuickActions(false)
+    if (path === 'logout') {
+      logout()
+      navigate('/')
+    } else {
+      navigate(path)
+    }
+  }
+
   return (
-    <aside className="w-64 bg-white border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-sm">
-      <Link to="/" className="flex items-center gap-2 mb-8 px-2">
-        <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-600/20">
-          <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" /></svg>
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:block w-64 bg-gradient-to-br from-white to-rose-50/30 border-r border-gray-100 min-h-screen p-4 fixed left-0 top-0 shadow-lg">
+        <Link to="/" className="flex items-center gap-2 mb-8 px-2 group">
+          <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c0 0-6 7.5-6 12a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" /></svg>
+          </div>
+          <span className="text-xl font-bold gradient-text">BloodLink</span>
+        </Link>
+
+        <div className="mb-6 px-2 py-3 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl border border-rose-100">
+          <p className="text-rose-600 text-sm font-medium">Blood Bank Portal</p>
+          <p className="font-bold text-gray-900 truncate">{user?.name}</p>
         </div>
-        <span className="text-xl font-bold text-gray-900">BloodLink</span>
-      </Link>
 
-      <div className="mb-6 px-2">
-        <span className="bg-purple-100 text-purple-600 text-xs px-2 py-1 rounded-lg font-medium">Blood Bank</span>
-        <p className="font-semibold text-gray-900 mt-2 truncate">{user?.name}</p>
-      </div>
+        <nav className="space-y-1">
+          {navItems.map((item) => (
+            <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${location.pathname === item.path ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105' : 'text-gray-600 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:text-rose-700'}`}>
+              <span>{item.icon}</span><span className="font-medium">{item.label}</span>
+              {item.badge > 0 && <span className={`ml-auto ${location.pathname === item.path ? 'bg-white text-rose-600' : 'bg-red-500 text-white'} text-xs px-2 py-1 rounded-full font-semibold animate-pulse`}>{item.badge}</span>}
+            </Link>
+          ))}
+        </nav>
 
-      <nav className="space-y-1">
-        {navItems.map((item) => (
-          <Link key={item.path} to={item.path} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${location.pathname === item.path ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'text-gray-600 hover:bg-gray-50'}`}>
-            <span>{item.icon}</span><span>{item.label}</span>
-            {item.badge > 0 && <span className="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">{item.badge}</span>}
+        <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 mt-8 text-gray-500 hover:text-gray-700 hover:bg-red-50 rounded-xl transition-all duration-300 w-full group">
+          <span>🚪</span><span className="font-medium">Logout</span>
+        </button>
+      </aside>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        <div className="flex justify-around items-center">
+          <Link to="/blood-bank" className={`flex flex-col items-center gap-1 px-4 py-3 transition-all duration-300 ${location.pathname === '/blood-bank' ? 'text-rose-600' : 'text-gray-600'}`}>
+            <span className="text-2xl">📊</span>
+            <span className="text-xs font-medium">Overview</span>
           </Link>
-        ))}
+          <button onClick={() => setShowQuickActions(true)} className="flex flex-col items-center gap-1 px-4 py-3 -mt-6 transition-all duration-300">
+            <div className="w-14 h-14 bg-gradient-to-r from-rose-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/30 hover:scale-110 transition-transform">
+              <span className="text-white text-2xl font-bold">+</span>
+            </div>
+          </button>
+          <Link to="/blood-bank/profile" className={`flex flex-col items-center gap-1 px-4 py-3 transition-all duration-300 ${location.pathname === '/blood-bank/profile' ? 'text-rose-600' : 'text-gray-600'}`}>
+            <span className="text-2xl">👤</span>
+            <span className="text-xs font-medium">Profile</span>
+          </Link>
+        </div>
       </nav>
 
-      <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 mt-8 text-gray-500 hover:text-gray-700 transition-colors w-full">
-        <span>🚪</span><span>Logout</span>
-      </button>
-    </aside>
+      {/* Quick Actions Modal */}
+      {showQuickActions && (
+        <div className="md:hidden fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowQuickActions(false)}>
+          <div className="bg-white rounded-t-3xl w-full p-6 pb-8 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            <h3 className="text-xl font-bold gradient-text mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {quickActions.map((action) => (
+                <button key={action.path} onClick={() => handleQuickAction(action.path)} className="relative p-4 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 hover:shadow-lg transition-all duration-300 text-left">
+                  {action.badge > 0 && <span className="absolute top-2 right-2 bg-red-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-semibold animate-pulse">{action.badge}</span>}
+                  <div className="text-3xl mb-2">{action.icon}</div>
+                  <div className="font-semibold text-gray-900 text-sm">{action.label}</div>
+                  <div className="text-xs text-gray-500 mt-1">{action.description}</div>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setShowQuickActions(false)} className="w-full mt-4 py-3 text-gray-600 font-medium hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
-// Overview Section
+// Overview Section with color-coded blood stock
 const Overview = () => {
   const { alerts } = useSocket()
   const [stats, setStats] = useState({ totalUnits: 0, pendingRequests: 0 })
@@ -70,38 +131,82 @@ const Overview = () => {
     fetchData()
   }, [])
 
+  // Helper function to get color based on blood units
+  // Low: 0-10 units (RED), Medium: 11-25 units (ORANGE), Sufficient: 26+ units (GREEN)
+  const getStockColor = (units) => {
+    if (units <= 10) return { bg: 'bg-gradient-to-br from-red-50 to-rose-100', border: 'border-red-300', text: 'text-red-700', label: 'Low' }
+    if (units <= 25) return { bg: 'bg-gradient-to-br from-orange-50 to-amber-100', border: 'border-orange-300', text: 'text-orange-700', label: 'Medium' }
+    return { bg: 'bg-gradient-to-br from-green-50 to-emerald-100', border: 'border-green-300', text: 'text-green-700', label: 'Sufficient' }
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Blood Bank Dashboard</h1>
+      <h1 className="text-3xl font-bold gradient-text mb-2">Blood Bank Dashboard</h1>
+      <p className="text-gray-600 mb-8">Manage your blood inventory and requests</p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card"><div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-2xl mb-3">🩸</div><div className="text-2xl font-bold text-gray-900">{stats.totalUnits}</div><div className="text-gray-500">Total Units in Stock</div></div>
-        <div className="card"><div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-2xl mb-3">📋</div><div className="text-2xl font-bold text-gray-900">{stats.pendingRequests}</div><div className="text-gray-500">Nearby Requests</div></div>
-        <div className="card"><div className="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center text-2xl mb-3">🔔</div><div className="text-2xl font-bold text-gray-900">{alerts.length}</div><div className="text-gray-500">New Alerts</div></div>
+        <div className="dashboard-card group hover:scale-105">
+          <div className="stat-card-icon bg-gradient-to-br from-rose-100 to-pink-100 text-rose-600 group-hover:scale-110 transition-transform">🩸</div>
+          <div className="text-3xl font-bold gradient-text mb-1">{stats.totalUnits}</div>
+          <div className="text-gray-600 font-medium">Total Units in Stock</div>
+          <div className="mt-3 text-xs text-rose-600 font-semibold">Blood Inventory</div>
+        </div>
+        <div className="dashboard-card group hover:scale-105">
+          <div className="stat-card-icon bg-gradient-to-br from-sky-100 to-cyan-100 text-sky-600 group-hover:scale-110 transition-transform">📋</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{stats.pendingRequests}</div>
+          <div className="text-gray-600 font-medium">Nearby Requests</div>
+          <div className="mt-3 text-xs text-sky-600 font-semibold">Pending Fulfillment</div>
+        </div>
+        <div className="dashboard-card group hover:scale-105">
+          <div className="stat-card-icon bg-gradient-to-br from-amber-100 to-orange-100 text-amber-600 group-hover:scale-110 transition-transform">🔔</div>
+          <div className="text-3xl font-bold text-gray-900 mb-1">{alerts.length}</div>
+          <div className="text-gray-600 font-medium">Active Alerts</div>
+          <div className="mt-3 text-xs text-amber-600 font-semibold">New Notifications</div>
+        </div>
       </div>
 
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Blood Stock Overview</h2>
+      <div className="dashboard-card gradient-bg-card border-purple-100">
+        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="text-2xl">🩸</span> Blood Stock Overview
+        </h2>
+        <p className="text-gray-500 text-sm mb-6">Color-coded based on availability: <span className="text-red-600 font-semibold">Low (0-10)</span>, <span className="text-orange-600 font-semibold">Medium (11-25)</span>, <span className="text-green-600 font-semibold">Sufficient (26+)</span></p>
         <div className="grid grid-cols-4 md:grid-cols-8 gap-4">
-          {stock.map((item) => (
-            <div key={item.blood_group} className={`text-center p-4 rounded-xl border ${item.units_available < 5 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-100'}`}>
-              <div className="text-lg font-bold text-red-600">{item.blood_group}</div>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{item.units_available}</div>
-              <div className="text-xs text-gray-400">units</div>
-            </div>
-          ))}
+          {stock.map((item) => {
+            const colorStyle = getStockColor(item.units_available)
+            return (
+              <div key={item.blood_group} className={`text-center p-4 rounded-xl border-2 ${colorStyle.bg} ${colorStyle.border} transition-all duration-300 hover:scale-110 hover:shadow-lg`}>
+                <div className="text-lg font-bold text-red-600">{item.blood_group}</div>
+                <div className={`text-2xl font-bold ${colorStyle.text} mt-1`}>{item.units_available}</div>
+                <div className="text-xs text-gray-500 mt-1">units</div>
+                <div className={`text-xs font-semibold ${colorStyle.text} mt-1`}>{colorStyle.label}</div>
+              </div>
+            )
+          })}
         </div>
-        {stock.some(s => s.units_available < 5) && <p className="text-yellow-600 text-sm mt-4">⚠️ Some blood types are running low. Consider requesting donations.</p>}
+        {stock.some(s => s.units_available <= 10) && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-xl">
+            <p className="text-red-700 font-semibold flex items-center gap-2">
+              <span className="text-xl">⚠️</span> Critical Alert: Some blood types are running low. Consider requesting donations immediately.
+            </p>
+          </div>
+        )}
       </div>
 
       {alerts.length > 0 && (
-        <div className="card mt-6 border-red-200 bg-red-50/50">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Recent Blood Requests</h2>
+        <div className="dashboard-card mt-6 border-rose-200 bg-gradient-to-br from-red-50 to-rose-50">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+            <span className="gradient-text">Recent Blood Requests</span>
+          </h2>
           <div className="space-y-3">
             {alerts.slice(0, 3).map((alert) => (
-              <div key={alert.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100">
-                <div><span className="font-semibold text-red-600">{alert.blood_group}</span><span className="text-gray-500 ml-2">- {alert.units_needed} unit(s)</span><p className="text-sm text-gray-400">{alert.address}</p></div>
-                <Link to="/blood-bank/requests" className="btn-primary text-sm py-2 px-4">View</Link>
+              <div key={alert.id} className="flex items-center justify-between bg-white p-4 rounded-xl border border-rose-100 hover:shadow-lg transition-shadow">
+                <div>
+                  <span className="text-2xl font-bold gradient-text">{alert.blood_group}</span>
+                  <span className="text-gray-500 ml-2 font-medium">- {alert.units_needed} unit(s)</span>
+                  <p className="text-sm text-gray-500 mt-1">📍 {alert.address}</p>
+                </div>
+                <Link to="/blood-bank/requests" className="btn-action text-sm py-2 px-5">View Details</Link>
               </div>
             ))}
           </div>
@@ -119,6 +224,13 @@ const BloodStock = () => {
   const [editingGroup, setEditingGroup] = useState(null)
   const [newUnits, setNewUnits] = useState(0)
 
+  // Helper function to get color based on blood units
+  const getStockColor = (units) => {
+    if (units <= 10) return { bg: 'bg-gradient-to-br from-red-50 to-rose-100', border: 'border-red-300', text: 'text-red-700', label: 'Low', badge: 'bg-red-100 text-red-700' }
+    if (units <= 25) return { bg: 'bg-gradient-to-br from-orange-50 to-amber-100', border: 'border-orange-300', text: 'text-orange-700', label: 'Medium', badge: 'bg-orange-100 text-orange-700' }
+    return { bg: 'bg-gradient-to-br from-green-50 to-emerald-100', border: 'border-green-300', text: 'text-green-700', label: 'Sufficient', badge: 'bg-green-100 text-green-700' }
+  }
+
   const fetchStock = async () => { try { const response = await api.get('/blood-bank/stock'); setStock(response.data) } catch (error) { console.log('Failed to fetch stock') } finally { setLoading(false) } }
   useEffect(() => { fetchStock() }, [])
 
@@ -131,33 +243,48 @@ const BloodStock = () => {
     } catch (error) { setToast({ type: 'error', message: 'Failed to update stock' }) }
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div></div>
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div></div>
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Blood Stock Management</h1>
+      <h1 className="text-3xl font-bold gradient-text mb-2">Blood Stock Management</h1>
+      <p className="text-gray-600 mb-8">Manage your blood inventory levels</p>
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
-      <div className="card">
-        <p className="text-gray-600 mb-6">Manage your blood inventory. Click on a blood type to update its stock.</p>
+      <div className="dashboard-card gradient-bg-card border-purple-100">
+        <p className="text-gray-600 mb-6 font-medium">Click on a blood type to update its stock. Color codes: <span className="text-red-600 font-semibold">Low (0-10)</span>, <span className="text-orange-600 font-semibold">Medium (11-25)</span>, <span className="text-green-600 font-semibold">Sufficient (26+)</span></p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {stock.map((item) => (
-            <div key={item.blood_group} className={`p-6 rounded-xl border ${item.units_available < 5 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-100'}`}>
-              {editingGroup === item.blood_group ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between"><span className="text-2xl font-bold text-red-600">{item.blood_group}</span><button onClick={() => setEditingGroup(null)} className="text-gray-400 hover:text-gray-600">✕</button></div>
-                  <div><label className="block text-sm text-gray-500 mb-2">Units Available</label><input type="number" min="0" value={newUnits} onChange={(e) => setNewUnits(parseInt(e.target.value) || 0)} className="input-field" /></div>
-                  <button onClick={() => handleUpdate(item.blood_group)} className="btn-primary w-full">Save</button>
-                </div>
-              ) : (
-                <div className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { setEditingGroup(item.blood_group); setNewUnits(item.units_available) }}>
-                  <div className="flex items-center justify-between mb-2"><span className="text-2xl font-bold text-red-600">{item.blood_group}</span><span className="text-gray-400 text-sm">Click to edit</span></div>
-                  <div className="text-4xl font-bold text-gray-900">{item.units_available}</div>
-                  <div className="text-gray-400">units available</div>
-                  {item.units_available < 5 && <p className="text-yellow-600 text-sm mt-2">⚠️ Low stock</p>}
-                </div>
-              )}
-            </div>
-          ))}
+          {stock.map((item) => {
+            const colorStyle = getStockColor(item.units_available)
+            return (
+              <div key={item.blood_group} className={`p-6 rounded-xl border-2 ${colorStyle.bg} ${colorStyle.border} transition-all duration-300 hover:shadow-lg`}>
+                {editingGroup === item.blood_group ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-2xl font-bold gradient-text">{item.blood_group}</span>
+                      <button onClick={() => setEditingGroup(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Units Available</label>
+                      <input type="number" min="0" value={newUnits} onChange={(e) => setNewUnits(parseInt(e.target.value) || 0)} className="input-field" />
+                    </div>
+                    <button onClick={() => handleUpdate(item.blood_group)} className="btn-primary w-full">Save Changes</button>
+                  </div>
+                ) : (
+                  <div className="cursor-pointer hover:opacity-80 transition-opacity" onClick={() => { setEditingGroup(item.blood_group); setNewUnits(item.units_available) }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-2xl font-bold text-red-600">{item.blood_group}</span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colorStyle.badge}`}>{colorStyle.label}</span>
+                    </div>
+                    <div className={`text-4xl font-bold ${colorStyle.text}`}>{item.units_available}</div>
+                    <div className="text-gray-500 font-medium mt-1">units available</div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <span className="text-gray-400 text-sm">Click to edit</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
@@ -356,7 +483,7 @@ const BloodBankDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <main className="ml-64 p-8">
+      <main className="md:ml-64 p-4 md:p-8 pb-20 md:pb-8">
         <Routes>
           <Route index element={<Overview />} />
           <Route path="stock" element={<BloodStock />} />

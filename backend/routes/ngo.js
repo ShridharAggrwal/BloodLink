@@ -87,13 +87,15 @@ router.get('/stats', auth, roleCheck('ngo'), async (req, res) => {
     const [activeCampaigns, totalCampaigns, ngoInfo] = await Promise.all([
       pool.query('SELECT COUNT(*) FROM campaigns WHERE ngo_id = $1 AND status = $2', [req.user.id, 'active']),
       pool.query('SELECT COUNT(*) FROM campaigns WHERE ngo_id = $1', [req.user.id]),
-      pool.query('SELECT volunteer_count FROM ngos WHERE id = $1', [req.user.id])
+      pool.query('SELECT volunteer_count, campaigns_count, blood_requests_accepted FROM ngos WHERE id = $1', [req.user.id])
     ]);
 
     res.json({
       activeCampaigns: parseInt(activeCampaigns.rows[0].count),
       totalCampaigns: parseInt(totalCampaigns.rows[0].count),
-      volunteerCount: ngoInfo.rows[0].volunteer_count
+      volunteerCount: ngoInfo.rows[0].volunteer_count,
+      campaignsCount: ngoInfo.rows[0].campaigns_count || 0,
+      bloodRequestsAccepted: ngoInfo.rows[0].blood_requests_accepted || 0
     });
   } catch (error) {
     console.error('Get NGO stats error:', error);
@@ -104,7 +106,7 @@ router.get('/stats', auth, roleCheck('ngo'), async (req, res) => {
 // Create campaign
 router.post('/campaigns', auth, roleCheck('ngo'), async (req, res) => {
   try {
-    const { title, address, latitude, longitude, start_date, end_date } = req.body;
+    const { title, address, latitude, longitude, start_date, end_date, health_checkup_available } = req.body;
 
     // Validate required fields
     if (!address) {
@@ -121,10 +123,16 @@ router.post('/campaigns', auth, roleCheck('ngo'), async (req, res) => {
     const finalLongitude = parseFloat(longitude);
 
     const result = await pool.query(
-      `INSERT INTO campaigns (ngo_id, title, latitude, longitude, address, start_date, end_date, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+      `INSERT INTO campaigns (ngo_id, title, latitude, longitude, address, start_date, end_date, status, health_checkup_available)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8)
        RETURNING *`,
-      [req.user.id, title, finalLatitude, finalLongitude, address, start_date, end_date]
+      [req.user.id, title, finalLatitude, finalLongitude, address, start_date, end_date, health_checkup_available || false]
+    );
+
+    // Increment campaigns_count for NGO
+    await pool.query(
+      'UPDATE ngos SET campaigns_count = campaigns_count + 1 WHERE id = $1',
+      [req.user.id]
     );
 
     res.status(201).json({ message: 'Campaign created', campaign: result.rows[0] });
@@ -186,6 +194,56 @@ router.put('/campaigns/:id', auth, roleCheck('ngo'), async (req, res) => {
   } catch (error) {
     console.error('Update campaign error:', error);
     res.status(500).json({ error: 'Failed to update campaign' });
+  }
+});
+
+// End campaign with blood units collected
+router.put('/campaigns/:id/end', auth, roleCheck('ngo'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { blood_units_collected } = req.body;
+
+    // Validate blood units
+    if (blood_units_collected === undefined || blood_units_collected === null) {
+      return res.status(400).json({ error: 'Blood units collected is required' });
+    }
+
+    if (blood_units_collected < 0) {
+      return res.status(400).json({ error: 'Blood units collected must be a positive number' });
+    }
+
+    // Verify campaign belongs to this NGO and is active
+    const check = await pool.query(
+      'SELECT id, status FROM campaigns WHERE id = $1 AND ngo_id = $2',
+      [id, req.user.id]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+
+    if (check.rows[0].status === 'ended') {
+      return res.status(400).json({ error: 'Campaign has already ended' });
+    }
+
+    // End campaign
+    const result = await pool.query(
+      `UPDATE campaigns 
+       SET status = 'ended',
+           blood_units_collected = $1,
+           ended_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [blood_units_collected, id]
+    );
+
+    res.json({
+      message: `Campaign ended successfully. ${blood_units_collected} units collected.`,
+      campaign: result.rows[0]
+    });
+  } catch (error) {
+    console.error('End campaign error:', error);
+    res.status(500).json({ error: 'Failed to end campaign' });
   }
 });
 
