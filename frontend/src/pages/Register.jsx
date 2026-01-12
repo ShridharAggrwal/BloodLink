@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import LocationPicker from "../components/common/LocationPicker";
+import Toast from "../components/common/Toast";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -33,6 +34,7 @@ const Register = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -59,12 +61,14 @@ const Register = () => {
     if (formData.password !== formData.confirmPassword) {
       setLoading(false);
       setError("Passwords do not match");
+      setToast({ type: 'error', message: 'Passwords do not match' });
       return;
     }
 
     if (formData.password.length < 6) {
       setLoading(false);
       setError("Password must be at least 6 characters");
+      setToast({ type: 'error', message: 'Password must be at least 6 characters' });
       return;
     }
 
@@ -73,6 +77,7 @@ const Register = () => {
       setError(
         "Location is required. Please allow location access or enter coordinates manually."
       );
+      setToast({ type: 'error', message: 'Location is required. Click on the map to select your location.' });
       return;
     }
 
@@ -83,17 +88,22 @@ const Register = () => {
       setSuccess(
         "Registration successful! Please check your email to verify your account."
       );
+      setToast({ type: 'success', message: 'Registration successful! Check your email to verify.' });
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
       const errorMessage =
         err.response?.data?.error || "Registration failed. Please try again.";
       setLoading(false);
       setError(errorMessage);
+      setToast({ type: 'error', message: errorMessage });
     }
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden py-20">
+      {/* Toast Notification */}
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
       {/* Background Image with Overlay */}
       <div className="fixed inset-0 z-0">
         <img

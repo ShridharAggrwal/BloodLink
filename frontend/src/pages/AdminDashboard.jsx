@@ -323,9 +323,17 @@ const UsersList = () => {
           {filteredUsers.map(user => (
             <div key={user.id} className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-[1.5rem] p-6 shadow-md shadow-slate-200/50 hover:shadow-lg transition-all duration-300 group hover:-translate-y-0.5">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-red-100 group-hover:scale-110 transition-transform">
-                  {user.name.charAt(0)}
-                </div>
+                {user.profile_image_url ? (
+                  <img
+                    src={user.profile_image_url}
+                    alt={user.name}
+                    className="w-12 h-12 rounded-full object-cover shadow-md shadow-red-100 group-hover:scale-110 transition-transform"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-red-100 group-hover:scale-110 transition-transform">
+                    {user.name.charAt(0)}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-slate-800 truncate">{user.name}</h3>
                   <p className="text-sm text-slate-500 truncate">{user.email}</p>

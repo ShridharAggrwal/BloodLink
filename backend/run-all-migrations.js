@@ -95,6 +95,24 @@ const runAllMigrations = async () => {
     `);
     console.log('  ✅ Created indexes for appointment tables\n');
 
+    // Migration 4: Blood request workflow enhancements
+    console.log('🩸 Migration 4: Adding blood request workflow columns...');
+    await pool.query(`
+      ALTER TABLE blood_requests ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMP;
+    `);
+    console.log('  ✅ Added accepted_at to blood_requests');
+
+    await pool.query(`
+      ALTER TABLE donations ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'blood_request';
+    `);
+    console.log('  ✅ Added source column to donations');
+
+    await pool.query(`
+      ALTER TABLE donations ADD COLUMN IF NOT EXISTS appointment_id INTEGER;
+    `);
+    console.log('  ✅ Added appointment_id to donations\n');
+
+
     console.log('═══════════════════════════════════════════════════');
     console.log('🎉 All migrations completed successfully!');
     console.log('═══════════════════════════════════════════════════\n');

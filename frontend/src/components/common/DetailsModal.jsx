@@ -39,16 +39,24 @@ const DetailsModal = ({ isOpen, onClose, type, data, onTrackOnMap, onAccept, loa
 
     const renderBloodRequestDetails = () => (
         <>
-            {/* Header */}
+            {/* Header with Profile Image */}
             <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-200">
-                    <span className="text-2xl font-bold text-white">{data.blood_group}</span>
-                </div>
+                {data.requester?.profile_image_url ? (
+                    <img
+                        src={data.requester.profile_image_url}
+                        alt="Requester"
+                        className="w-16 h-16 rounded-2xl object-cover border-2 border-rose-200"
+                    />
+                ) : (
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-200">
+                        <span className="text-2xl font-bold text-white">{data.blood_group}</span>
+                    </div>
+                )}
                 <div>
                     <h3 className="text-xl font-bold text-slate-800">Blood Request</h3>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 text-xs font-semibold">
-                            {data.units_needed} unit(s) needed
+                            {data.blood_group} • {data.units_needed} unit(s)
                         </span>
                         {data.distance && (
                             <span className="text-xs text-slate-500">{formatDistance(data.distance)}</span>
@@ -91,10 +99,22 @@ const DetailsModal = ({ isOpen, onClose, type, data, onTrackOnMap, onAccept, loa
             </div>
 
             {/* Time */}
-            <div className="flex items-center gap-2 text-slate-500 text-sm mb-6">
+            <div className="flex items-center gap-2 text-slate-500 text-sm mb-4">
                 <Clock className="w-4 h-4" />
                 <span>Posted {formatDate(data.created_at)}</span>
             </div>
+
+            {/* Prescription Image */}
+            {data.prescription_image_url && (
+                <div className="mb-6">
+                    <h4 className="text-sm font-semibold text-slate-700 mb-2">Prescription</h4>
+                    <img
+                        src={data.prescription_image_url}
+                        alt="Prescription"
+                        className="w-full max-h-48 object-contain rounded-xl border border-slate-200 bg-white p-2"
+                    />
+                </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-3">

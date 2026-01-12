@@ -3,7 +3,7 @@ import { X, Calendar, Clock, Loader2, CheckCircle2, MapPin, AlertTriangle } from
 import { cn } from '../../lib/utils'
 import api from '../../services/api'
 
-const BookAppointmentModal = ({ isOpen, onClose, bloodBank, onBookingComplete }) => {
+const BookAppointmentModal = ({ isOpen, onClose, bloodBank, onBookingComplete, onError }) => {
     const [selectedDate, setSelectedDate] = useState('')
     const [availableSlots, setAvailableSlots] = useState([])
     const [selectedSlot, setSelectedSlot] = useState(null)
@@ -67,7 +67,14 @@ const BookAppointmentModal = ({ isOpen, onClose, bloodBank, onBookingComplete })
             setBookingDetails(response.data.bankDetails)
             onBookingComplete?.()
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to book appointment')
+            const errorMessage = err.response?.data?.error || 'Failed to book appointment'
+            // If it's a 3-month eligibility error, show as toast on dashboard
+            if (errorMessage.includes('days before donating') || errorMessage.includes('3-month')) {
+                onError?.(errorMessage)
+                onClose() // Close modal so toast is visible
+            } else {
+                setError(errorMessage)
+            }
         } finally {
             setLoading(false)
         }

@@ -102,6 +102,27 @@ router.post('/book', auth, roleCheck('user'), async (req, res) => {
     const { slotId, notes } = req.body;
     const userId = req.user.id;
 
+    // Check donation eligibility (3-month rule)
+    const lastDonation = await pool.query(
+      `SELECT donated_at FROM donations 
+       WHERE donor_id = $1 AND donor_type = 'user' 
+       ORDER BY donated_at DESC LIMIT 1`,
+      [userId]
+    );
+
+    if (lastDonation.rows.length > 0) {
+      const lastDonationDate = new Date(lastDonation.rows[0].donated_at);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      if (lastDonationDate > threeMonthsAgo) {
+        const daysRemaining = Math.ceil((lastDonationDate.getTime() + 90 * 24 * 60 * 60 * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
+        return res.status(400).json({ 
+          error: `You must wait ${daysRemaining} more days before donating again (3-month gap required between donations)` 
+        });
+      }
+    }
+
     // Get user info
     const userResult = await pool.query(
       'SELECT name, email, phone, blood_group FROM users WHERE id = $1',
@@ -117,6 +138,7 @@ router.post('/book', auth, roleCheck('user'), async (req, res) => {
     if (!user.blood_group) {
       return res.status(400).json({ error: 'Please update your blood group in your profile before booking' });
     }
+
 
     // Get slot info and check availability
     const slotResult = await pool.query(
@@ -437,6 +459,24 @@ router.put('/status/:id', auth, roleCheck('blood_bank'), async (req, res) => {
       );
     }
 
+    // If marking as completed, create donation record for the user
+    if (status === 'completed' && currentAppointment.status !== 'completed') {
+      // Check if donation already exists for this appointment
+      const existingDonation = await pool.query(
+        'SELECT id FROM donations WHERE appointment_id = $1',
+        [id]
+      );
+
+      if (existingDonation.rows.length === 0) {
+        await pool.query(
+          `INSERT INTO donations (donor_id, donor_type, blood_group, units, source, appointment_id)
+           VALUES ($1, 'user', $2, 1, 'appointment', $3)`,
+          [currentAppointment.user_id, currentAppointment.blood_group, id]
+        );
+        console.log(`Donation record created for user ${currentAppointment.user_id} from appointment ${id}`);
+      }
+    }
+
     const result = await pool.query(
       'UPDATE appointments SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
       [status, id]
@@ -448,5 +488,6 @@ router.put('/status/:id', auth, roleCheck('blood_bank'), async (req, res) => {
     res.status(500).json({ error: 'Failed to update status' });
   }
 });
+
 
 module.exports = router;

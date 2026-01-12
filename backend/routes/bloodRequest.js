@@ -191,12 +191,12 @@ router.get('/alerts', auth, async (req, res) => {
       .filter(r => r.distance <= 35000)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    // Enrich with requester contact info
+    // Enrich with requester contact info and profile image
     for (let alert of alerts) {
       let requesterInfo = {};
       if (alert.requester_type === 'user') {
         const userInfo = await pool.query(
-          'SELECT name, email, phone FROM users WHERE id = $1',
+          'SELECT name, email, phone, profile_image_url FROM users WHERE id = $1',
           [alert.requester_id]
         );
         if (userInfo.rows[0]) {
@@ -204,19 +204,19 @@ router.get('/alerts', auth, async (req, res) => {
         }
       } else if (alert.requester_type === 'ngo') {
         const ngoInfo = await pool.query(
-          'SELECT name, email, owner_name FROM ngos WHERE id = $1',
+          'SELECT name, email, owner_name, profile_image_url FROM ngos WHERE id = $1',
           [alert.requester_id]
         );
         if (ngoInfo.rows[0]) {
-          requesterInfo = { name: ngoInfo.rows[0].name, email: ngoInfo.rows[0].email, contact_name: ngoInfo.rows[0].owner_name };
+          requesterInfo = { name: ngoInfo.rows[0].name, email: ngoInfo.rows[0].email, contact_name: ngoInfo.rows[0].owner_name, profile_image_url: ngoInfo.rows[0].profile_image_url };
         }
       } else if (alert.requester_type === 'blood_bank') {
         const bbInfo = await pool.query(
-          'SELECT name, email, contact_info FROM blood_banks WHERE id = $1',
+          'SELECT name, email, contact_info, profile_image_url FROM blood_banks WHERE id = $1',
           [alert.requester_id]
         );
         if (bbInfo.rows[0]) {
-          requesterInfo = { name: bbInfo.rows[0].name, email: bbInfo.rows[0].email, phone: bbInfo.rows[0].contact_info };
+          requesterInfo = { name: bbInfo.rows[0].name, email: bbInfo.rows[0].email, phone: bbInfo.rows[0].contact_info, profile_image_url: bbInfo.rows[0].profile_image_url };
         }
       }
       alert.requester = requesterInfo;
@@ -229,11 +229,32 @@ router.get('/alerts', auth, async (req, res) => {
   }
 });
 
-// Accept blood request
+// Accept blood request - Now sets to 'accepted' status, not fulfilled
 router.put('/:id/accept', auth, async (req, res) => {
   try {
     const { id: requestId } = req.params;
     const { id: userId, role } = req.user;
+
+    // Check donation eligibility (3-month rule)
+    const lastDonation = await pool.query(
+      `SELECT donated_at FROM donations 
+       WHERE donor_id = $1 AND donor_type = $2 
+       ORDER BY donated_at DESC LIMIT 1`,
+      [userId, role]
+    );
+
+    if (lastDonation.rows.length > 0) {
+      const lastDonationDate = new Date(lastDonation.rows[0].donated_at);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      if (lastDonationDate > threeMonthsAgo) {
+        const daysRemaining = Math.ceil((lastDonationDate.getTime() + 90 * 24 * 60 * 60 * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
+        return res.status(400).json({ 
+          error: `You must wait ${daysRemaining} more days before donating again (3-month gap required)` 
+        });
+      }
+    }
 
     // Check if request is still active
     const check = await pool.query(
@@ -247,39 +268,163 @@ router.put('/:id/accept', auth, async (req, res) => {
 
     const request = check.rows[0];
 
-    // Update request status
+    // Prevent self-acceptance
+    if (request.requester_id === userId && request.requester_type === role) {
+      return res.status(400).json({ error: 'You cannot accept your own request' });
+    }
+
+    // Update request status to 'accepted'
     await pool.query(
       `UPDATE blood_requests 
-       SET status = 'fulfilled', accepted_by = $1, accepted_by_type = $2
+       SET status = 'accepted', accepted_by = $1, accepted_by_type = $2, accepted_at = NOW()
        WHERE id = $3`,
       [userId, role, requestId]
     );
 
-    // Create donation record
-    await pool.query(
-      `INSERT INTO donations (donor_id, donor_type, request_id, blood_group, units)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [userId, role, requestId, request.blood_group, request.units_needed]
-    );
-
-    // Notify all users that this request is no longer available
+    // Notify all users that this request is now accepted
     const io = req.app.get('io');
-    io.emit('blood-request:accepted', { requestId: parseInt(requestId) });
+    io.emit('blood-request:status-changed', { requestId: parseInt(requestId), status: 'accepted' });
 
-    res.json({ message: 'Request accepted successfully. Thank you for your donation!' });
+    res.json({ message: 'Request accepted! Please contact the requester to arrange donation.' });
   } catch (error) {
     console.error('Accept request error:', error);
     res.status(500).json({ error: 'Failed to accept request' });
   }
 });
 
-// Get my requests
+// Confirm request fulfilled - Called by requester when blood received
+router.put('/:id/confirm-fulfilled', auth, async (req, res) => {
+  try {
+    const { id: requestId } = req.params;
+    const { id: userId, role } = req.user;
+
+    // Check if this is the requester and request is accepted
+    const check = await pool.query(
+      `SELECT * FROM blood_requests 
+       WHERE id = $1 AND requester_id = $2 AND requester_type = $3 AND status = 'accepted'`,
+      [requestId, userId, role]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(400).json({ error: 'Request not found or not in accepted status' });
+    }
+
+    const request = check.rows[0];
+
+    // Update to fulfilled
+    await pool.query(
+      `UPDATE blood_requests SET status = 'fulfilled' WHERE id = $1`,
+      [requestId]
+    );
+
+    // Create donation record for the accepter
+    await pool.query(
+      `INSERT INTO donations (donor_id, donor_type, request_id, blood_group, units, source)
+       VALUES ($1, $2, $3, $4, $5, 'blood_request')`,
+      [request.accepted_by, request.accepted_by_type, requestId, request.blood_group, request.units_needed]
+    );
+
+    // Notify
+    const io = req.app.get('io');
+    io.emit('blood-request:status-changed', { requestId: parseInt(requestId), status: 'fulfilled' });
+
+    res.json({ message: 'Request marked as fulfilled. Thank you!' });
+  } catch (error) {
+    console.error('Confirm fulfilled error:', error);
+    res.status(500).json({ error: 'Failed to confirm fulfillment' });
+  }
+});
+
+// Report accepter not responding - Called by requester
+router.put('/:id/report-unresponsive', auth, async (req, res) => {
+  try {
+    const { id: requestId } = req.params;
+    const { id: userId, role } = req.user;
+
+    // Check if this is the requester and request is accepted
+    const check = await pool.query(
+      `SELECT * FROM blood_requests 
+       WHERE id = $1 AND requester_id = $2 AND requester_type = $3 AND status = 'accepted'`,
+      [requestId, userId, role]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(400).json({ error: 'Request not found or not in accepted status' });
+    }
+
+    // Reset to active
+    await pool.query(
+      `UPDATE blood_requests 
+       SET status = 'active', accepted_by = NULL, accepted_by_type = NULL, accepted_at = NULL
+       WHERE id = $1`,
+      [requestId]
+    );
+
+    // Notify that request is available again
+    const io = req.app.get('io');
+    io.emit('blood-request:status-changed', { requestId: parseInt(requestId), status: 'active' });
+
+    res.json({ message: 'Request is now available for others to accept' });
+  } catch (error) {
+    console.error('Report unresponsive error:', error);
+    res.status(500).json({ error: 'Failed to report' });
+  }
+});
+
+// Cancel acceptance - Called by accepter
+router.put('/:id/cancel-accept', auth, async (req, res) => {
+  try {
+    const { id: requestId } = req.params;
+    const { id: userId, role } = req.user;
+
+    // Check if this user is the accepter
+    const check = await pool.query(
+      `SELECT * FROM blood_requests 
+       WHERE id = $1 AND accepted_by = $2 AND accepted_by_type = $3 AND status = 'accepted'`,
+      [requestId, userId, role]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(400).json({ error: 'Request not found or you are not the accepter' });
+    }
+
+    // Reset to active
+    await pool.query(
+      `UPDATE blood_requests 
+       SET status = 'active', accepted_by = NULL, accepted_by_type = NULL, accepted_at = NULL
+       WHERE id = $1`,
+      [requestId]
+    );
+
+    // Notify
+    const io = req.app.get('io');
+    io.emit('blood-request:status-changed', { requestId: parseInt(requestId), status: 'active' });
+
+    res.json({ message: 'Your acceptance has been cancelled' });
+  } catch (error) {
+    console.error('Cancel accept error:', error);
+    res.status(500).json({ error: 'Failed to cancel acceptance' });
+  }
+});
+
+// Get my requests - Now includes accepter info
 router.get('/my-requests', auth, async (req, res) => {
   try {
     const { id, role } = req.user;
 
     const result = await pool.query(
-      `SELECT * FROM blood_requests 
+      `SELECT br.*,
+              CASE 
+                WHEN br.accepted_by_type = 'user' THEN (SELECT name FROM users WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'ngo' THEN (SELECT name FROM ngos WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT name FROM blood_banks WHERE id = br.accepted_by)
+              END as accepter_name,
+              CASE 
+                WHEN br.accepted_by_type = 'user' THEN (SELECT phone FROM users WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'ngo' THEN (SELECT owner_name FROM ngos WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT contact_info FROM blood_banks WHERE id = br.accepted_by)
+              END as accepter_contact
+       FROM blood_requests br
        WHERE requester_id = $1 AND requester_type = $2
        ORDER BY created_at DESC`,
       [id, role]
@@ -292,6 +437,36 @@ router.get('/my-requests', auth, async (req, res) => {
   }
 });
 
+// Get my accepted requests (requests I've accepted)
+router.get('/my-accepted', auth, async (req, res) => {
+  try {
+    const { id, role } = req.user;
+
+    const result = await pool.query(
+      `SELECT br.*,
+              CASE 
+                WHEN br.requester_type = 'user' THEN (SELECT name FROM users WHERE id = br.requester_id)
+                WHEN br.requester_type = 'ngo' THEN (SELECT name FROM ngos WHERE id = br.requester_id)
+                WHEN br.requester_type = 'blood_bank' THEN (SELECT name FROM blood_banks WHERE id = br.requester_id)
+              END as requester_name,
+              CASE 
+                WHEN br.requester_type = 'user' THEN (SELECT phone FROM users WHERE id = br.requester_id)
+                WHEN br.requester_type = 'ngo' THEN (SELECT owner_name FROM ngos WHERE id = br.requester_id)
+                WHEN br.requester_type = 'blood_bank' THEN (SELECT contact_info FROM blood_banks WHERE id = br.requester_id)
+              END as requester_contact
+       FROM blood_requests br
+       WHERE accepted_by = $1 AND accepted_by_type = $2 AND status = 'accepted'
+       ORDER BY accepted_at DESC`,
+      [id, role]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Get my accepted error:', error);
+    res.status(500).json({ error: 'Failed to get accepted requests' });
+  }
+});
+
 // Cancel request
 router.put('/:id/cancel', auth, async (req, res) => {
   try {
@@ -301,7 +476,7 @@ router.put('/:id/cancel', auth, async (req, res) => {
     const result = await pool.query(
       `UPDATE blood_requests 
        SET status = 'cancelled'
-       WHERE id = $1 AND requester_id = $2 AND requester_type = $3 AND status = 'active'
+       WHERE id = $1 AND requester_id = $2 AND requester_type = $3 AND status IN ('active', 'accepted')
        RETURNING id`,
       [requestId, userId, role]
     );
@@ -312,7 +487,7 @@ router.put('/:id/cancel', auth, async (req, res) => {
 
     // Notify others that this request is cancelled
     const io = req.app.get('io');
-    io.emit('blood-request:accepted', { requestId: parseInt(requestId) });
+    io.emit('blood-request:status-changed', { requestId: parseInt(requestId), status: 'cancelled' });
 
     res.json({ message: 'Request cancelled' });
   } catch (error) {
@@ -322,3 +497,4 @@ router.put('/:id/cancel', auth, async (req, res) => {
 });
 
 module.exports = router;
+

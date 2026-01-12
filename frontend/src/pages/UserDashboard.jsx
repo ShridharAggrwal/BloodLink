@@ -27,7 +27,8 @@ import {
   Building2,
   Heart,
   CalendarPlus,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Eye
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/utils'
@@ -457,6 +458,7 @@ const DonateBlood = () => {
         onClose={() => setShowBookingModal(false)}
         bloodBank={selectedBank}
         onBookingComplete={() => setToast({ type: 'success', message: 'Appointment booked successfully!' })}
+        onError={(message) => setToast({ type: 'error', message })}
       />
     </div>
   )
@@ -468,6 +470,8 @@ const History = () => {
   const [history, setHistory] = useState({ donations: [], requests: [] })
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('donations')
+  const [toast, setToast] = useState(null)
+
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -491,6 +495,8 @@ const History = () => {
         <h1 className="text-3xl font-bold text-slate-800 mb-2">History</h1>
         <p className="text-slate-500">View your donation and request history</p>
       </div>
+
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       <div className="flex gap-4 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
         <button
@@ -532,25 +538,78 @@ const History = () => {
             <div className="text-center py-12 text-slate-400">No requests yet</div>
           ) : (
             history.requests.map((request) => (
-              <div key={request.id} className="bg-white border border-slate-200 rounded-2xl p-6 flex items-center justify-between shadow-sm">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xl font-bold text-rose-600">{request.blood_group}</span>
-                    <span className="text-slate-500 text-sm">• {request.units_needed} unit(s)</span>
+              <div key={request.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white font-bold shadow-lg shadow-red-200">
+                      {request.blood_group}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{request.units_needed} Unit(s) Needed</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${request.status === 'active' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          request.status === 'accepted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                            request.status === 'fulfilled' ? 'bg-green-50 text-green-700 border-green-200' :
+                              'bg-slate-100 text-slate-500 border-slate-200'
+                          }`}>
+                          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-500">{request.address}</p>
+                      <p className="text-xs text-slate-400">{new Date(request.created_at).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                  <p className="text-slate-600 text-sm mb-1">{request.address}</p>
-                  <p className="text-xs text-slate-400">{new Date(request.created_at).toLocaleDateString()}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${request.status === 'active' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                  request.status === 'fulfilled' ? 'bg-green-50 text-green-700 border-green-200' :
-                    'bg-slate-100 text-slate-500 border-slate-200'
-                  }`}>
-                  {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                </span>
+
+                {/* Accepted status - show accepter info and actions */}
+                {request.status === 'accepted' && request.accepter_name && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <p className="text-sm font-medium text-blue-800 mb-1">
+                      Accepted by: {request.accepter_name}
+                    </p>
+                    {request.accepter_contact && (
+                      <p className="text-xs text-blue-600">Contact: {request.accepter_contact}</p>
+                    )}
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={async () => {
+                          try {
+                            await api.put(`/blood-requests/${request.id}/confirm-fulfilled`)
+                            setToast({ type: 'success', message: 'Request marked as fulfilled!' })
+                            // Refresh
+                            const response = await api.get('/users/history')
+                            setHistory(response.data)
+                          } catch (error) {
+                            setToast({ type: 'error', message: error.response?.data?.error || 'Failed to confirm' })
+                          }
+                        }}
+                        className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        ✓ Blood Received
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await api.put(`/blood-requests/${request.id}/report-unresponsive`)
+                            setToast({ type: 'success', message: 'Request is now available to others' })
+                            const response = await api.get('/users/history')
+                            setHistory(response.data)
+                          } catch (error) {
+                            setToast({ type: 'error', message: error.response?.data?.error || 'Failed to report' })
+                          }
+                        }}
+                        className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        Not Responding
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))
           )
         )}
+
       </div>
     </div>
   )
@@ -562,6 +621,7 @@ const Alerts = () => {
   const [data, setData] = useState({ requests: [], campaigns: [] })
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
+  const [selectedRequest, setSelectedRequest] = useState(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -586,8 +646,9 @@ const Alerts = () => {
   const handleAccept = async (requestId) => {
     try {
       await api.put(`/blood-requests/${requestId}/accept`)
-      setToast({ type: 'success', message: 'Request accepted! Thank you for helping.' })
+      setToast({ type: 'success', message: 'Request accepted! Please contact the requester.' })
       setData(prev => ({ ...prev, requests: prev.requests.filter(a => a.id !== requestId) }))
+      setSelectedRequest(null)
     } catch (error) {
       setToast({ type: 'error', message: error.response?.data?.error || 'Failed to accept' })
     }
@@ -642,9 +703,25 @@ const Alerts = () => {
                     <MapPin className="w-4 h-4 flex-shrink-0 text-slate-400" />
                     <span className="truncate">{alert.address}</span>
                   </div>
-                  <button onClick={() => handleAccept(alert.id)} className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-red-200">
-                    Accept & Donate
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedRequest(alert)}
+                      className="flex-1 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Details
+                    </button>
+                    <button
+                      onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${alert.latitude},${alert.longitude}`, '_blank')}
+                      className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Directions
+                    </button>
+                    <button onClick={() => handleAccept(alert.id)} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-red-200">
+                      Accept
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -675,16 +752,18 @@ const Alerts = () => {
                       Campaign
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mb-3 line-clamp-2">{campaign.description}</p>
 
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-xs text-slate-600">
                       <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="truncate">{campaign.location}</span>
+                      <span className="truncate">{campaign.address}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-600">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{new Date(campaign.date).toLocaleDateString()} • {campaign.time}</span>
+                      <span>
+                        {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString() : 'Date TBD'}
+                        {campaign.end_date && ` - ${new Date(campaign.end_date).toLocaleDateString()}`}
+                      </span>
                     </div>
                   </div>
 
@@ -692,8 +771,12 @@ const Alerts = () => {
                     <div className="text-xs font-semibold text-slate-500">
                       Organizer: <span className="text-slate-700">{campaign.ngo_name || 'NGO'}</span>
                     </div>
-                    {/* Placeholder for View Details or Register if functionality exists */}
-                    <button className="text-xs font-bold text-blue-600 hover:text-blue-700">View Details</button>
+                    <button
+                      onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${campaign.latitude},${campaign.longitude}`, '_blank')}
+                      className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                    >
+                      <MapPin className="w-3 h-3" /> Directions
+                    </button>
                   </div>
                 </div>
               ))}
@@ -702,6 +785,87 @@ const Alerts = () => {
         </div>
 
       </div>
+
+      {/* Blood Request Details Modal */}
+      {selectedRequest && (
+        <Modal isOpen={true} onClose={() => setSelectedRequest(null)} title="Blood Request Details">
+          <div className="space-y-6">
+            {/* Requester Info */}
+            <div className="flex items-center gap-4">
+              {selectedRequest.requester?.profile_image_url ? (
+                <img
+                  src={selectedRequest.requester.profile_image_url}
+                  alt="Requester"
+                  className="w-16 h-16 rounded-full object-cover border-2 border-rose-200"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white text-2xl font-bold">
+                  {selectedRequest.requester?.name?.charAt(0) || '?'}
+                </div>
+              )}
+              <div>
+                <h3 className="font-bold text-lg text-slate-800">{selectedRequest.requester?.name || 'Unknown'}</h3>
+                {selectedRequest.requester?.phone && (
+                  <a href={`tel:${selectedRequest.requester.phone}`} className="text-sm text-blue-600 hover:underline">
+                    {selectedRequest.requester.phone}
+                  </a>
+                )}
+                {selectedRequest.requester?.email && (
+                  <p className="text-sm text-slate-500">{selectedRequest.requester.email}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Request Details */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-rose-50 rounded-xl p-4 text-center border border-rose-100">
+                <p className="text-3xl font-bold text-rose-600">{selectedRequest.blood_group}</p>
+                <p className="text-xs text-rose-500 font-medium">Blood Group</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-200">
+                <p className="text-3xl font-bold text-slate-700">{selectedRequest.units_needed}</p>
+                <p className="text-xs text-slate-500 font-medium">Units Needed</p>
+              </div>
+            </div>
+
+            {/* Address */}
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+              <p className="text-sm text-slate-600 flex items-start gap-2">
+                <MapPin className="w-4 h-4 mt-0.5 text-slate-400 flex-shrink-0" />
+                {selectedRequest.address}
+              </p>
+            </div>
+
+            {/* Prescription Image */}
+            {selectedRequest.prescription_image_url && (
+              <div>
+                <p className="text-sm font-semibold text-slate-700 mb-2">Prescription</p>
+                <img
+                  src={selectedRequest.prescription_image_url}
+                  alt="Prescription"
+                  className="w-full max-h-64 object-contain rounded-xl border border-slate-200 bg-white p-2"
+                />
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${selectedRequest.latitude},${selectedRequest.longitude}`, '_blank')}
+                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <MapPin className="w-4 h-4" /> Get Directions
+              </button>
+              <button
+                onClick={() => handleAccept(selectedRequest.id)}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors shadow-lg shadow-red-200"
+              >
+                Accept & Donate
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
@@ -928,6 +1092,7 @@ const Nearby = () => {
         onClose={() => setShowBookingModal(false)}
         bloodBank={selectedBank}
         onBookingComplete={() => setToast({ type: 'success', message: 'Appointment booked successfully!' })}
+        onError={(message) => setToast({ type: 'error', message })}
       />
     </div>
 
