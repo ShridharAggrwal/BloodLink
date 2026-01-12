@@ -277,15 +277,15 @@ function HeroSection() {
       {/* Background Image Container */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://www.livemint.com/lm-img/img/2025/02/20/optimize/INDIA-POLITICS-DELHI-14_1740045325725_1740045348415.jpg"
+          src="/images/background.png"
           alt="Healthcare professional"
-          className="w-full h-full object-cover object-[25%_20%]"
+          className="w-full h-full object-cover object-[37%_20%] lg:object-[25%_20%]"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/80" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-[60vh] lg:pt-24 h-full flex items-end lg:items-center min-h-[85vh] lg:min-h-[90vh]">
-        <div className="grid lg:grid-cols-12 gap-12 items-center w-full pb-8 lg:py-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-28 lg:pt-24 h-full flex items-center min-h-[85vh] lg:min-h-[90vh]">
+        <div className="grid lg:grid-cols-12 gap-12 items-center w-full py-8 lg:py-12">
           <div className="lg:col-span-7">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -783,9 +783,9 @@ function HowItWorksSection() {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img
-          src="https://www.livemint.com/lm-img/img/2025/02/20/optimize/INDIA-POLITICS-DELHI-14_1740045325725_1740045348415.jpg"
+          src="/images/background.png"
           alt="Background"
-          className="w-full h-full object-cover object-[25%_20%]"
+          className="w-full h-full object-cover object-[37%_20%] lg:object-[25%_20%]"
         />
         <div className="absolute inset-0 bg-white/90" />
       </div>

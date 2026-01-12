@@ -395,8 +395,8 @@ const ViewRequests = () => {
                     onClick={() => handleAccept(request.id)}
                     disabled={accepting || request.is_accepted}
                     className={`px-5 py-2.5 rounded-xl font-medium shadow-md transition-all disabled:opacity-50 ${request.is_accepted
-                        ? 'bg-slate-200 text-slate-500 shadow-none cursor-not-allowed'
-                        : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white shadow-red-100'
+                      ? 'bg-slate-200 text-slate-500 shadow-none cursor-not-allowed'
+                      : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white shadow-red-100'
                       }`}
                   >
                     {request.is_accepted ? 'Accepted' : 'Fulfill'}
@@ -656,7 +656,12 @@ const BloodBankProfile = () => {
             <form id="profileForm" onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputField label="Blood Bank Name" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                <InputField label="Email Address" type="email" value={user?.email} disabled className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Email Address</label>
+                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 font-medium break-all text-sm">
+                    {user?.email}
+                  </div>
+                </div>
                 <InputField label="Contact Info" type="text" value={formData.contact_info} onChange={(e) => setFormData({ ...formData, contact_info: e.target.value })} placeholder="Phone number" />
               </div>
 

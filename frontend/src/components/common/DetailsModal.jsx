@@ -317,7 +317,7 @@ const DetailsModal = ({ isOpen, onClose, type, data, onTrackOnMap, onAccept, loa
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="w-full max-w-md bg-white rounded-3xl shadow-2xl max-h-[85vh] overflow-y-auto pointer-events-auto"
+                            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl max-h-[85vh] overflow-y-auto pointer-events-auto"
                         >
                             {/* Close Button */}
                             <button
