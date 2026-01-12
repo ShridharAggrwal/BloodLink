@@ -605,6 +605,17 @@ const History = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Show last cancellation reason if request was cancelled by accepter */}
+                {request.status === 'active' && request.last_cancel_reason && (
+                  <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                    <p className="text-sm font-medium text-amber-800 mb-1">
+                      ⚠️ {request.last_cancelled_by_name || 'Previous accepter'} cancelled their acceptance
+                    </p>
+                    <p className="text-xs text-amber-600">Reason: {request.last_cancel_reason}</p>
+                    <p className="text-xs text-amber-500 mt-1">Your request is now available to others again.</p>
+                  </div>
+                )}
               </div>
             ))
           )
@@ -684,10 +695,10 @@ const Alerts = () => {
           ) : (
             <div className="space-y-4">
               {data.requests.map((alert) => (
-                <div key={alert.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all">
+                <div key={alert.id} className={`bg-white border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all ${alert.is_accepted ? 'border-amber-200' : 'border-slate-200'}`}>
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 font-bold border border-rose-100">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border ${alert.is_accepted ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
                         {alert.blood_group}
                       </div>
                       <div>
@@ -695,10 +706,25 @@ const Alerts = () => {
                         <span className="text-xs text-slate-500 block">{new Date(alert.created_at).toLocaleString()}</span>
                       </div>
                     </div>
-                    <span className="px-2 py-1 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-100">
-                      {alert.units_needed} Unit(s)
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="px-2 py-1 rounded-md bg-red-50 text-red-700 text-xs font-bold border border-red-100">
+                        {alert.units_needed} Unit(s)
+                      </span>
+                      {alert.is_accepted && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                          Pending
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Availability message for accepted requests */}
+                  {alert.is_accepted && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 mb-3 text-xs text-amber-700">
+                      ⏳ {alert.availability_message || 'This request has been accepted but not yet fulfilled. It may become available again.'}
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 text-sm text-slate-600 mb-4 bg-slate-50 p-3 rounded-lg">
                     <MapPin className="w-4 h-4 flex-shrink-0 text-slate-400" />
                     <span className="truncate">{alert.address}</span>
@@ -718,8 +744,15 @@ const Alerts = () => {
                       <MapPin className="w-4 h-4" />
                       Directions
                     </button>
-                    <button onClick={() => handleAccept(alert.id)} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm shadow-red-200">
-                      Accept
+                    <button
+                      onClick={() => handleAccept(alert.id)}
+                      disabled={alert.is_accepted}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm ${alert.is_accepted
+                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                        : 'bg-red-600 hover:bg-red-700 text-white shadow-red-200'
+                        }`}
+                    >
+                      {alert.is_accepted ? 'Accepted' : 'Accept'}
                     </button>
                   </div>
                 </div>

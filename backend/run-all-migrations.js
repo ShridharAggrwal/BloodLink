@@ -112,6 +112,23 @@ const runAllMigrations = async () => {
     `);
     console.log('  ✅ Added appointment_id to donations\n');
 
+    // Migration 5: Blood request cancel reason
+    console.log('🩸 Migration 5: Adding cancel reason columns...');
+    await pool.query(`
+      ALTER TABLE blood_requests ADD COLUMN IF NOT EXISTS cancel_reason TEXT;
+    `);
+    console.log('  ✅ Added cancel_reason to blood_requests');
+
+    await pool.query(`
+      ALTER TABLE blood_requests ADD COLUMN IF NOT EXISTS last_cancel_reason TEXT;
+    `);
+    console.log('  ✅ Added last_cancel_reason to blood_requests');
+
+    await pool.query(`
+      ALTER TABLE blood_requests ADD COLUMN IF NOT EXISTS last_cancelled_by_name VARCHAR(255);
+    `);
+    console.log('  ✅ Added last_cancelled_by_name to blood_requests\n');
+
 
     console.log('═══════════════════════════════════════════════════');
     console.log('🎉 All migrations completed successfully!');

@@ -26,7 +26,8 @@ import {
   ChevronLeft,
   X,
   Phone,
-  Mail
+  Mail,
+  ClipboardList
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/utils'
@@ -1152,6 +1153,200 @@ const NGOProfile = () => {
   )
 }
 
+// NGO History Section
+const NGOHistory = () => {
+  const [activeTab, setActiveTab] = useState('myRequests')
+  const [myRequests, setMyRequests] = useState([])
+  const [myAccepted, setMyAccepted] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+  const [cancelModal, setCancelModal] = useState({ open: false, requestId: null, reason: '' })
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    try {
+      const [requestsRes, acceptedRes] = await Promise.all([
+        api.get('/blood-requests/my-requests'),
+        api.get('/blood-requests/my-accepted')
+      ])
+      setMyRequests(requestsRes.data)
+      setMyAccepted(acceptedRes.data)
+    } catch (error) {
+      console.log('Failed to fetch history')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleConfirmFulfilled = async (requestId) => {
+    try {
+      await api.put(`/blood-requests/${requestId}/confirm-fulfilled`)
+      setToast({ type: 'success', message: 'Request marked as fulfilled!' })
+      fetchData()
+    } catch (error) {
+      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to confirm' })
+    }
+  }
+
+  const handleReassign = async (requestId) => {
+    try {
+      await api.put(`/blood-requests/${requestId}/report-unresponsive`)
+      setToast({ type: 'success', message: 'Request is now available to others' })
+      fetchData()
+    } catch (error) {
+      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to reassign' })
+    }
+  }
+
+  const handleCancelAcceptance = async () => {
+    if (!cancelModal.reason.trim()) {
+      setToast({ type: 'error', message: 'Please provide a reason for cancellation' })
+      return
+    }
+    try {
+      await api.put(`/blood-requests/${cancelModal.requestId}/cancel-accept`, { reason: cancelModal.reason })
+      setToast({ type: 'success', message: 'Acceptance cancelled' })
+      setCancelModal({ open: false, requestId: null, reason: '' })
+      fetchData()
+    } catch (error) {
+      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to cancel' })
+    }
+  }
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500"></div></div>
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">History</h1>
+        <p className="text-slate-500">Track your blood requests and acceptances</p>
+      </div>
+
+      {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-200 pb-2">
+        <button onClick={() => setActiveTab('myRequests')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'myRequests' ? 'bg-rose-100 text-rose-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+          My Requests ({myRequests.length})
+        </button>
+        <button onClick={() => setActiveTab('myAccepted')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'myAccepted' ? 'bg-rose-100 text-rose-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+          Requests I Accepted ({myAccepted.length})
+        </button>
+      </div>
+
+      {/* My Requests Tab */}
+      {activeTab === 'myRequests' && (
+        <div className="space-y-4">
+          {myRequests.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No requests created yet</div>
+          ) : (
+            myRequests.map((request) => (
+              <div key={request.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white font-bold">{request.blood_group}</div>
+                    <div>
+                      <span className="font-bold text-slate-800">{request.units_needed} Unit(s)</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${request.status === 'fulfilled' ? 'bg-green-100 text-green-700' : request.status === 'accepted' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                      </span>
+                      <p className="text-sm text-slate-500">{request.address}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {request.status === 'accepted' && request.accepter_name && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <p className="text-sm font-medium text-blue-800">Accepted by: {request.accepter_name}</p>
+                    {request.accepter_contact && <p className="text-xs text-blue-600">Contact: {request.accepter_contact}</p>}
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={() => handleConfirmFulfilled(request.id)} className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">
+                        ✓ Blood Received
+                      </button>
+                      <button onClick={() => handleReassign(request.id)} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">
+                        Reassign
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {request.status === 'active' && request.last_cancel_reason && (
+                  <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                    <p className="text-sm font-medium text-amber-800">⚠️ {request.last_cancelled_by_name} cancelled</p>
+                    <p className="text-xs text-amber-600">Reason: {request.last_cancel_reason}</p>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* My Accepted Tab */}
+      {activeTab === 'myAccepted' && (
+        <div className="space-y-4">
+          {myAccepted.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No requests accepted yet</div>
+          ) : (
+            myAccepted.map((request) => (
+              <div key={request.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">{request.blood_group}</div>
+                    <div>
+                      <span className="font-bold text-slate-800">{request.units_needed} Unit(s) - {request.requester_name}</span>
+                      <p className="text-sm text-slate-500">{request.address}</p>
+                      {request.requester_contact && <p className="text-xs text-blue-600">Contact: {request.requester_contact}</p>}
+                    </div>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${request.status === 'fulfilled' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {request.status === 'fulfilled' ? 'Completed' : 'Pending'}
+                  </span>
+                </div>
+
+                {request.status === 'accepted' && (
+                  <button
+                    onClick={() => setCancelModal({ open: true, requestId: request.id, reason: '' })}
+                    className="mt-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium"
+                  >
+                    Cancel My Acceptance
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Cancel Modal */}
+      {cancelModal.open && (
+        <Modal isOpen={true} onClose={() => setCancelModal({ open: false, requestId: null, reason: '' })} title="Cancel Acceptance">
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">Please provide a reason for cancelling. This will be shown to the requester.</p>
+            <textarea
+              value={cancelModal.reason}
+              onChange={(e) => setCancelModal({ ...cancelModal, reason: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 resize-none h-24"
+              placeholder="Enter reason for cancellation..."
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setCancelModal({ open: false, requestId: null, reason: '' })} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium">
+                Keep Acceptance
+              </button>
+              <button onClick={handleCancelAcceptance} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium">
+                Cancel Acceptance
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  )
+}
+
 const NGODashboard = () => {
   const navItems = [
     { path: '/ngo', label: 'Overview', icon: BarChart3 },
@@ -1159,6 +1354,7 @@ const NGODashboard = () => {
     { path: '/ngo/create-campaign', label: 'Create Campaign', icon: Plus },
     { path: '/ngo/blood-requests', label: 'Request Blood', icon: Droplets },
     { path: '/ngo/alerts', label: 'Alerts', icon: Bell },
+    { path: '/ngo/history', label: 'History', icon: ClipboardList },
     { path: '/ngo/profile', label: 'Profile', icon: User },
   ]
 
@@ -1170,6 +1366,7 @@ const NGODashboard = () => {
         <Route path="/create-campaign" element={<CreateCampaign />} />
         <Route path="/blood-requests" element={<NGORequestBlood />} />
         <Route path="/alerts" element={<NGOAlerts />} />
+        <Route path="/history" element={<NGOHistory />} />
         <Route path="/profile" element={<NGOProfile />} />
       </Routes>
     </DashboardLayout>

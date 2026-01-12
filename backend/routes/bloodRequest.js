@@ -171,10 +171,18 @@ router.get('/alerts', auth, async (req, res) => {
       return res.json([]);
     }
 
-    // Get all active requests
+    // Get all active AND accepted requests (accepted ones shown with message)
     const requestsResult = await pool.query(
-      `SELECT * FROM blood_requests 
-       WHERE status = 'active'
+      `SELECT br.*, 
+              CASE WHEN br.status = 'accepted' THEN true ELSE false END as is_accepted,
+              CASE 
+                WHEN br.accepted_by_type = 'user' THEN (SELECT name FROM users WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'ngo' THEN (SELECT name FROM ngos WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT name FROM blood_banks WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'admin' THEN (SELECT name FROM admins WHERE id = br.accepted_by)
+              END as accepted_by_name
+       FROM blood_requests br
+       WHERE status IN ('active', 'accepted')
          AND NOT (requester_id = $1 AND requester_type = $2)
          AND latitude IS NOT NULL 
          AND longitude IS NOT NULL
@@ -186,7 +194,11 @@ router.get('/alerts', auth, async (req, res) => {
     let alerts = requestsResult.rows
       .map(r => ({
         ...r,
-        distance: haversineDistance(userLat, userLng, r.latitude, r.longitude)
+        distance: haversineDistance(userLat, userLng, r.latitude, r.longitude),
+        // Add availability message for accepted requests
+        availability_message: r.is_accepted 
+          ? 'This request has been accepted by someone but not yet fulfilled. It may become available if help is not completed.'
+          : null
       }))
       .filter(r => r.distance <= 35000)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -235,24 +247,26 @@ router.put('/:id/accept', auth, async (req, res) => {
     const { id: requestId } = req.params;
     const { id: userId, role } = req.user;
 
-    // Check donation eligibility (3-month rule)
-    const lastDonation = await pool.query(
-      `SELECT donated_at FROM donations 
-       WHERE donor_id = $1 AND donor_type = $2 
-       ORDER BY donated_at DESC LIMIT 1`,
-      [userId, role]
-    );
+    // Check donation eligibility (3-month rule) - ONLY for users, not NGO/Blood Bank/Admin
+    if (role === 'user') {
+      const lastDonation = await pool.query(
+        `SELECT donated_at FROM donations 
+         WHERE donor_id = $1 AND donor_type = $2 
+         ORDER BY donated_at DESC LIMIT 1`,
+        [userId, role]
+      );
 
-    if (lastDonation.rows.length > 0) {
-      const lastDonationDate = new Date(lastDonation.rows[0].donated_at);
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      if (lastDonation.rows.length > 0) {
+        const lastDonationDate = new Date(lastDonation.rows[0].donated_at);
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
-      if (lastDonationDate > threeMonthsAgo) {
-        const daysRemaining = Math.ceil((lastDonationDate.getTime() + 90 * 24 * 60 * 60 * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
-        return res.status(400).json({ 
-          error: `You must wait ${daysRemaining} more days before donating again (3-month gap required)` 
-        });
+        if (lastDonationDate > threeMonthsAgo) {
+          const daysRemaining = Math.ceil((lastDonationDate.getTime() + 90 * 24 * 60 * 60 * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
+          return res.status(400).json({ 
+            error: `You must wait ${daysRemaining} more days before donating again (3-month gap required)` 
+          });
+        }
       }
     }
 
@@ -371,11 +385,16 @@ router.put('/:id/report-unresponsive', auth, async (req, res) => {
   }
 });
 
-// Cancel acceptance - Called by accepter
+// Cancel acceptance - Called by accepter (requires reason)
 router.put('/:id/cancel-accept', auth, async (req, res) => {
   try {
     const { id: requestId } = req.params;
     const { id: userId, role } = req.user;
+    const { reason } = req.body;
+
+    if (!reason || reason.trim().length === 0) {
+      return res.status(400).json({ error: 'Please provide a reason for cancellation' });
+    }
 
     // Check if this user is the accepter
     const check = await pool.query(
@@ -388,17 +407,32 @@ router.put('/:id/cancel-accept', auth, async (req, res) => {
       return res.status(400).json({ error: 'Request not found or you are not the accepter' });
     }
 
-    // Reset to active
+    // Get accepter's name for the message to needy
+    let table = role === 'ngo' ? 'ngos' : role === 'blood_bank' ? 'blood_banks' : role === 'admin' ? 'admins' : 'users';
+    const nameResult = await pool.query(`SELECT name FROM ${table} WHERE id = $1`, [userId]);
+    const cancellerName = nameResult.rows[0]?.name || 'Someone';
+
+    // Reset to active and store cancel reason
     await pool.query(
       `UPDATE blood_requests 
-       SET status = 'active', accepted_by = NULL, accepted_by_type = NULL, accepted_at = NULL
+       SET status = 'active', 
+           accepted_by = NULL, 
+           accepted_by_type = NULL, 
+           accepted_at = NULL,
+           last_cancel_reason = $2,
+           last_cancelled_by_name = $3
        WHERE id = $1`,
-      [requestId]
+      [requestId, reason.trim(), cancellerName]
     );
 
     // Notify
     const io = req.app.get('io');
-    io.emit('blood-request:status-changed', { requestId: parseInt(requestId), status: 'active' });
+    io.emit('blood-request:status-changed', { 
+      requestId: parseInt(requestId), 
+      status: 'active',
+      cancelledBy: cancellerName,
+      cancelReason: reason.trim()
+    });
 
     res.json({ message: 'Your acceptance has been cancelled' });
   } catch (error) {
@@ -418,12 +452,20 @@ router.get('/my-requests', auth, async (req, res) => {
                 WHEN br.accepted_by_type = 'user' THEN (SELECT name FROM users WHERE id = br.accepted_by)
                 WHEN br.accepted_by_type = 'ngo' THEN (SELECT name FROM ngos WHERE id = br.accepted_by)
                 WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT name FROM blood_banks WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'admin' THEN (SELECT name FROM admins WHERE id = br.accepted_by)
               END as accepter_name,
               CASE 
                 WHEN br.accepted_by_type = 'user' THEN (SELECT phone FROM users WHERE id = br.accepted_by)
                 WHEN br.accepted_by_type = 'ngo' THEN (SELECT owner_name FROM ngos WHERE id = br.accepted_by)
                 WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT contact_info FROM blood_banks WHERE id = br.accepted_by)
-              END as accepter_contact
+                WHEN br.accepted_by_type = 'admin' THEN (SELECT email FROM admins WHERE id = br.accepted_by)
+              END as accepter_contact,
+              CASE 
+                WHEN br.accepted_by_type = 'user' THEN (SELECT email FROM users WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'ngo' THEN (SELECT email FROM ngos WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT email FROM blood_banks WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'admin' THEN (SELECT email FROM admins WHERE id = br.accepted_by)
+              END as accepter_email
        FROM blood_requests br
        WHERE requester_id = $1 AND requester_type = $2
        ORDER BY created_at DESC`,
