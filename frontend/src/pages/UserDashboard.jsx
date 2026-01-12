@@ -575,9 +575,9 @@ const History = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-800">{request.units_needed} Unit(s)</span>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${request.status === 'fulfilled' ? 'bg-green-100 text-green-700' :
-                            request.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
-                              request.status === 'cancelled' ? 'bg-slate-100 text-slate-500' :
-                                'bg-amber-100 text-amber-700'
+                          request.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                            request.status === 'cancelled' ? 'bg-slate-100 text-slate-500' :
+                              'bg-amber-100 text-amber-700'
                           }`}>
                           {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                         </span>
@@ -1033,14 +1033,14 @@ const Nearby = () => {
           className={`px-4 sm:px-6 py-2.5 rounded-lg transition-all duration-300 font-medium text-sm flex items-center gap-2 whitespace-nowrap ${activeTab === 'campaigns' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
         >
           <Calendar className="w-4 h-4" />
-          <span className="hidden sm:inline">Campaigns</span> ({data.campaigns.length})
+          Campaigns ({data.campaigns.length})
         </button>
         <button
           onClick={() => setActiveTab('bloodbanks')}
           className={`px-4 sm:px-6 py-2.5 rounded-lg transition-all duration-300 font-medium text-sm flex items-center gap-2 whitespace-nowrap ${activeTab === 'bloodbanks' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
         >
           <Building2 className="w-4 h-4" />
-          <span className="hidden sm:inline">Blood Banks</span> ({data.bloodBanks.length})
+          Blood Banks ({data.bloodBanks.length})
         </button>
       </div>
 
@@ -1057,41 +1057,48 @@ const Nearby = () => {
         ) : (
           <div className="grid gap-4">
             {data.campaigns.map((campaign) => (
-              <div key={campaign.id} className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      <Calendar className="w-7 h-7 text-slate-700" />
+              <div key={campaign.id} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all duration-300">
+                <div className="flex flex-col gap-3">
+                  {/* Header with icon and name */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <Calendar className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700" />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="text-lg font-bold text-slate-800">{campaign.title}</span>
-                        {campaign.distance && (
-                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
-                            {formatDistance(campaign.distance)} away
-                          </span>
-                        )}
-                        {campaign.health_checkup_available && (
-                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium flex items-center gap-1 border border-slate-200">
-                            <Heart className="w-3 h-3" /> Health Checkup
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-slate-600 text-sm mb-1">by {campaign.ngo_name}</p>
-                      <p className="text-slate-500 text-xs">{campaign.address}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-800 break-words">{campaign.title}</h3>
+                      <p className="text-slate-600 text-sm">by {campaign.ngo_name}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+
+                  {/* Tags */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {campaign.distance && (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
+                        {formatDistance(campaign.distance)} away
+                      </span>
+                    )}
+                    {campaign.health_checkup_available && (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium flex items-center gap-1 border border-slate-200">
+                        <Heart className="w-3 h-3" /> Health Checkup
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Address */}
+                  <p className="text-slate-500 text-xs">{campaign.address}</p>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 pt-2">
                     <button
                       onClick={() => openDirections(campaign)}
-                      className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 border border-slate-200"
+                      className="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1.5 border border-slate-200"
                     >
                       <MapPin className="w-4 h-4" />
-                      <span className="hidden sm:inline">Directions</span>
+                      Directions
                     </button>
                     <button
                       onClick={() => openDetails(campaign, 'campaign')}
-                      className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all"
+                      className="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all"
                     >
                       View Details
                     </button>
@@ -1113,60 +1120,63 @@ const Nearby = () => {
         ) : (
           <div className="grid gap-4">
             {data.bloodBanks.map((bank) => (
-              <div key={bank.id} className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                      <Building2 className="w-7 h-7 text-slate-700" />
+              <div key={bank.id} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 hover:shadow-lg transition-all duration-300">
+                <div className="flex flex-col gap-3">
+                  {/* Header with icon and name */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-slate-700" />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="text-lg font-bold text-slate-800">{bank.name}</span>
-                        {bank.distance && (
-                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
-                            {formatDistance(bank.distance)} away
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-slate-500 text-sm mb-2">{bank.address}</p>
-                      {/* Stock Preview */}
-                      {bank.stock && Object.keys(bank.stock).length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {Object.entries(bank.stock).slice(0, 4).map(([group, units]) => (
-                            <span key={group} className={`px-2 py-0.5 rounded text-xs font-medium border ${units > 0 ? 'bg-slate-50 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                              {group}: {units}
-                            </span>
-                          ))}
-                          {Object.keys(bank.stock).length > 4 && (
-                            <span className="px-2 py-0.5 rounded text-xs text-slate-400">+{Object.keys(bank.stock).length - 4} more</span>
-                          )}
-                        </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-800 break-words">{bank.name}</h3>
+                      {bank.distance && (
+                        <span className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200 mt-1">
+                          {formatDistance(bank.distance)} away
+                        </span>
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+
+                  {/* Address */}
+                  <p className="text-slate-500 text-sm">{bank.address}</p>
+
+                  {/* Stock Preview */}
+                  {bank.stock && Object.keys(bank.stock).length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {Object.entries(bank.stock).slice(0, 4).map(([group, units]) => (
+                        <span key={group} className={`px-2 py-0.5 rounded text-xs font-medium border ${units > 0 ? 'bg-slate-50 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                          {group}: {units}
+                        </span>
+                      ))}
+                      {Object.keys(bank.stock).length > 4 && (
+                        <span className="px-2 py-0.5 rounded text-xs text-slate-400">+{Object.keys(bank.stock).length - 4} more</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     <button
                       onClick={() => openDirections(bank)}
-                      className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 border border-slate-200"
+                      className="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1.5 border border-slate-200"
                     >
                       <MapPin className="w-4 h-4" />
-                      <span className="hidden sm:inline">Directions</span>
+                      Directions
                     </button>
                     <button
                       onClick={() => openDetails(bank, 'bloodbank')}
-                      className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all"
+                      className="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all"
                     >
                       Details
                     </button>
-                    <button
-                      onClick={() => openBooking(bank)}
-                      className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-all flex items-center gap-1.5 shadow-sm"
-                    >
-                      <CalendarPlus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Book Appointment</span>
-                      <span className="sm:hidden">Book</span>
-                    </button>
                   </div>
+                  <button
+                    onClick={() => openBooking(bank)}
+                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <CalendarPlus className="w-4 h-4" />
+                    Book Appointment
+                  </button>
                 </div>
               </div>
             ))}
@@ -1316,7 +1326,12 @@ const Profile = () => {
             <form id="profileForm" onSubmit={handleSubmit} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <InputField label="Full Name" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                <InputField label="Email Address" type="email" value={user?.email} disabled className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Email Address</label>
+                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 font-medium break-all text-sm">
+                    {user?.email}
+                  </div>
+                </div>
                 <InputField label="Phone Number" type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-700">Gender</label>

@@ -240,14 +240,14 @@ const Campaigns = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">Campaigns</h1>
-          <p className="text-slate-500">Manage your blood donation drives</p>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">Campaigns</h1>
+          <Link to="/ngo/create-campaign" className="flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-rose-200 whitespace-nowrap text-sm sm:text-base">
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" /> Create New
+          </Link>
         </div>
-        <Link to="/ngo/create-campaign" className="flex items-center gap-2 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors shadow-lg shadow-rose-200">
-          <Plus className="w-5 h-5" /> Create New
-        </Link>
+        <p className="text-slate-500 text-sm sm:text-base">Manage your blood donation drives</p>
       </div>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
@@ -887,8 +887,8 @@ const NGOAlerts = () => {
                     onClick={() => handleAccept(alert.id)}
                     disabled={accepting || alert.is_accepted}
                     className={`px-5 py-2.5 rounded-xl font-medium shadow-md transition-all disabled:opacity-50 ${alert.is_accepted
-                        ? 'bg-slate-200 text-slate-500 shadow-none cursor-not-allowed'
-                        : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white shadow-red-100'
+                      ? 'bg-slate-200 text-slate-500 shadow-none cursor-not-allowed'
+                      : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white shadow-red-100'
                       }`}
                   >
                     {alert.is_accepted ? 'Accepted' : 'Accept'}
@@ -1101,7 +1101,12 @@ const NGOProfile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputField label="NGO Name" type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                 <InputField label="Owner Name" type="text" value={formData.owner_name} onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })} />
-                <InputField label="Email" type="email" value={user?.email} disabled className="bg-slate-100 text-slate-500 cursor-not-allowed" />
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Email</label>
+                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 font-medium break-all text-sm">
+                    {user?.email}
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <InputField label="Age" type="number" value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} />
                   <div className="space-y-2">
