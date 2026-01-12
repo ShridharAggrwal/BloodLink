@@ -21,7 +21,7 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
 router.get('/profile', auth, roleCheck('blood_bank'), async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, name, email, contact_info, address, latitude as lat, longitude as lng
+      `SELECT id, name, email, contact_info, address, latitude as lat, longitude as lng, profile_image_url
        FROM blood_banks WHERE id = $1`,
       [req.user.id]
     );
@@ -40,7 +40,7 @@ router.get('/profile', auth, roleCheck('blood_bank'), async (req, res) => {
 // Update Blood Bank profile
 router.put('/profile', auth, roleCheck('blood_bank'), async (req, res) => {
   try {
-    const { name, contact_info, address, latitude, longitude } = req.body;
+    const { name, contact_info, address, latitude, longitude, profile_image_url } = req.body;
 
     const result = await pool.query(
       `UPDATE blood_banks 
@@ -48,10 +48,11 @@ router.put('/profile', auth, roleCheck('blood_bank'), async (req, res) => {
            contact_info = COALESCE($2, contact_info),
            address = COALESCE($3, address),
            latitude = COALESCE($4, latitude),
-           longitude = COALESCE($5, longitude)
-       WHERE id = $6
-       RETURNING id, name, email, contact_info, address, latitude, longitude`,
-      [name, contact_info, address, latitude, longitude, req.user.id]
+           longitude = COALESCE($5, longitude),
+           profile_image_url = COALESCE($6, profile_image_url)
+       WHERE id = $7
+       RETURNING id, name, email, contact_info, address, latitude, longitude, profile_image_url`,
+      [name, contact_info, address, latitude, longitude, profile_image_url, req.user.id]
     );
     res.json({ message: 'Profile updated', bloodBank: result.rows[0] });
   } catch (error) {

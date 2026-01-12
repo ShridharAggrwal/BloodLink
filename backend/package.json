@@ -9,9 +9,11 @@
     "db:init": "node config/initDb.js",
     "db:seed": "node config/seedAdmin.js",
     "db:setup": "node config/initDb.js && node config/seedAdmin.js",
-    "db:reset": "node scripts/resetDatabase.js"
+    "db:reset": "node scripts/resetDatabase.js",
+    "db:migrate": "node run-all-migrations.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@sendgrid/mail": "^8.1.6",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

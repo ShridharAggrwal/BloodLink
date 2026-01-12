@@ -8,6 +8,9 @@ import Toast from '../components/common/Toast'
 import LocationPicker from '../components/common/LocationPicker'
 import DetailsModal from '../components/common/DetailsModal'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import ImageUpload from '../components/common/ImageUpload'
+import PrescriptionUpload from '../components/common/PrescriptionUpload'
+import BookAppointmentModal from '../components/common/BookAppointmentModal'
 import {
   BarChart3,
   Droplets,
@@ -22,10 +25,13 @@ import {
   Search,
   Calendar,
   Building2,
-  Heart
+  Heart,
+  CalendarPlus,
+  Image as ImageIcon
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '../lib/utils'
+
 
 // Overview Section
 const Overview = () => {
@@ -157,10 +163,12 @@ const RequestBlood = () => {
     units_needed: 1,
     address: '',
     latitude: '',
-    longitude: ''
+    longitude: '',
+    prescription_image_url: ''
   })
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(null)
+  const [prescriptionVerified, setPrescriptionVerified] = useState(false)
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
@@ -178,6 +186,17 @@ const RequestBlood = () => {
     }))
   }
 
+  const handlePrescriptionChange = (url) => {
+    setFormData(prev => ({ ...prev, prescription_image_url: url }))
+  }
+
+  const handlePrescriptionVerification = (isValid, url) => {
+    setPrescriptionVerified(isValid)
+    if (!isValid) {
+      setFormData(prev => ({ ...prev, prescription_image_url: '' }))
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -186,12 +205,18 @@ const RequestBlood = () => {
       return
     }
 
+    if (!formData.prescription_image_url) {
+      setToast({ type: 'error', message: 'Please upload a verified prescription image.' })
+      return
+    }
+
     setLoading(true)
 
     try {
       const response = await api.post('/blood-requests', formData)
       setToast({ type: 'success', message: `Request created! ${response.data.alertsSent} donors notified.` })
-      setFormData({ blood_group: '', units_needed: 1, address: '', latitude: '', longitude: '' })
+      setFormData({ blood_group: '', units_needed: 1, address: '', latitude: '', longitude: '', prescription_image_url: '' })
+      setPrescriptionVerified(false)
     } catch (error) {
       setToast({ type: 'error', message: error.response?.data?.error || 'Failed to create request' })
     } finally {
@@ -213,9 +238,9 @@ const RequestBlood = () => {
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Blood Group</label>
               <select
@@ -244,12 +269,25 @@ const RequestBlood = () => {
             </div>
           </div>
 
+          {/* Prescription Upload */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              <ImageIcon className="w-4 h-4 inline mr-1" />
+              Prescription Image <span className="text-red-500">*</span>
+            </label>
+            <PrescriptionUpload
+              value={formData.prescription_image_url}
+              onChange={handlePrescriptionChange}
+              onVerificationComplete={handlePrescriptionVerification}
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Location / Address</label>
             <textarea
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all resize-none h-24"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all resize-none h-20"
               placeholder="Enter the address where blood is needed"
               required
             />
@@ -257,7 +295,7 @@ const RequestBlood = () => {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">Request Location</label>
-            <p className="text-xs text-slate-500 mb-4">Donors within 35km will be notified. Click on map or search to select location.</p>
+            <p className="text-xs text-slate-500 mb-3">Donors within 35km will be notified. Click on map or search to select location.</p>
             <LocationPicker
               value={currentCoords}
               onChange={handleLocationChange}
@@ -267,7 +305,11 @@ const RequestBlood = () => {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-200 transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+          <button
+            type="submit"
+            disabled={loading || !prescriptionVerified}
+            className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow-lg shadow-red-200 transition-all transform active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             {loading ? 'Creating Request...' : 'Broadcast Request'}
           </button>
         </form>
@@ -276,13 +318,15 @@ const RequestBlood = () => {
   )
 }
 
-// Donate Blood Section
+
+// Donate Blood Section - Now features nearby blood banks for appointment booking
 const DonateBlood = () => {
-  const { alerts } = useSocket()
-  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
+  const [bloodBanks, setBloodBanks] = useState([])
+  const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
-  const [selectedRequest, setSelectedRequest] = useState(null)
-  const [showModal, setShowModal] = useState(false)
+  const [showBookingModal, setShowBookingModal] = useState(false)
+  const [selectedBank, setSelectedBank] = useState(null)
 
   const formatDistance = (meters) => {
     if (!meters) return ''
@@ -290,126 +334,134 @@ const DonateBlood = () => {
     return `${(meters / 1000).toFixed(1)}km`
   }
 
-  const handleAccept = async (requestId) => {
-    setLoading(true)
-    try {
-      await api.put(`/blood-requests/${requestId}/accept`)
-      setToast({ type: 'success', message: 'Thank you for accepting! Contact the requester.' })
-      setShowModal(false)
-    } catch (error) {
-      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to accept request' })
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    const fetchNearbyBanks = async () => {
+      try {
+        const response = await api.get('/users/nearby')
+        setBloodBanks(response.data.bloodBanks || [])
+      } catch (error) {
+        setToast({ type: 'error', message: error.response?.data?.error || 'Failed to load nearby blood banks' })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchNearbyBanks()
+  }, [])
+
+  const openDirections = (bank) => {
+    if (bank.latitude && bank.longitude) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${bank.latitude},${bank.longitude}`, '_blank')
     }
   }
 
-  const openDirections = (alert) => {
-    if (alert.latitude && alert.longitude) {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${alert.latitude},${alert.longitude}`, '_blank')
-    }
+  const openBooking = (bank) => {
+    setSelectedBank(bank)
+    setShowBookingModal(true)
   }
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500"></div></div>
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-slate-800 mb-2">Donate Blood</h1>
-        <p className="text-slate-500">Accept blood requests from people nearby who need your help</p>
+        <p className="text-slate-500">Book an appointment at a nearby blood bank or respond to urgent requests</p>
       </div>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      {alerts.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
-          <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Heart className="w-8 h-8 text-slate-400" />
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button
+          onClick={() => navigate('/dashboard/alerts')}
+          className="bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-2xl p-6 text-left hover:from-rose-600 hover:to-red-700 transition-all shadow-lg shadow-red-100"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <Bell className="w-6 h-6" />
+            <span className="text-lg font-bold">View Alerts</span>
           </div>
-          <h3 className="text-lg font-semibold text-slate-800 mb-2">No Active Requests</h3>
-          <p className="text-slate-500">There are no blood requests in your area right now.</p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {alerts.map((alert) => (
-            <div key={alert.id} className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-lg hover:border-rose-200 transition-all duration-300">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {/* Left: Blood Group & Info */}
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-red-200">
-                    <span className="text-xl font-bold text-white">{alert.blood_group}</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="text-lg font-bold text-slate-800">Blood Request</span>
-                      <span className="px-2 py-0.5 rounded-full bg-rose-50 border border-rose-100 text-rose-600 text-xs font-semibold">
-                        {alert.units_needed} unit(s)
-                      </span>
-                      {alert.distance && (
-                        <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium">
-                          {formatDistance(alert.distance)} away
-                        </span>
-                      )}
+          <p className="text-sm text-white/80">Respond to urgent blood requests and join donation campaigns near you</p>
+        </button>
+
+        <button
+          onClick={() => navigate('/dashboard/nearby')}
+          className="bg-white border border-slate-200 rounded-2xl p-6 text-left hover:shadow-lg hover:border-rose-200 transition-all"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            <MapPin className="w-6 h-6 text-slate-700" />
+            <span className="text-lg font-bold text-slate-800">Explore Nearby</span>
+          </div>
+          <p className="text-sm text-slate-500">Find donation campaigns and blood banks in your area</p>
+        </button>
+      </div>
+
+      {/* Nearby Blood Banks */}
+      <div>
+        <h2 className="text-xl font-bold text-slate-800 mb-4">Nearby Blood Banks</h2>
+
+        {bloodBanks.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-sm">
+            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Building2 className="w-6 h-6 text-slate-400" />
+            </div>
+            <h3 className="font-semibold text-slate-800 mb-1">No Blood Banks Nearby</h3>
+            <p className="text-slate-500 text-sm">Please update your location in your profile to find blood banks near you.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {bloodBanks.map((bank) => (
+              <div key={bank.id} className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-lg transition-all duration-300">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-6 h-6 text-slate-700" />
                     </div>
-                    <p className="text-slate-600 text-sm mb-2 line-clamp-1">{alert.address}</p>
-                    {/* Requester Info Preview */}
-                    {alert.requester && (
-                      <div className="flex items-center gap-4 text-xs text-slate-500">
-                        {alert.requester.name && (
-                          <span className="flex items-center gap-1">
-                            <User className="w-3 h-3" />
-                            {alert.requester.name}
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="font-bold text-slate-800">{bank.name}</span>
+                        {bank.distance && (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium">
+                            {formatDistance(bank.distance)} away
                           </span>
                         )}
-                        {alert.requester.phone && (
-                          <a href={`tel:${alert.requester.phone}`} className="flex items-center gap-1 text-blue-600 hover:text-blue-700">
-                            <MapPin className="w-3 h-3" />
-                            Call
-                          </a>
-                        )}
                       </div>
-                    )}
+                      <p className="text-slate-500 text-sm line-clamp-1">{bank.address}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => openDirections(bank)}
+                      className="px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 border border-slate-200"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      <span className="hidden sm:inline">Directions</span>
+                    </button>
+                    <button
+                      onClick={() => openBooking(bank)}
+                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-all flex items-center gap-1.5 shadow-sm"
+                    >
+                      <CalendarPlus className="w-4 h-4" />
+                      Book Appointment
+                    </button>
                   </div>
                 </div>
-
-                {/* Right: Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => openDirections(alert)}
-                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5"
-                  >
-                    <MapPin className="w-4 h-4" />
-                    Directions
-                  </button>
-                  <button
-                    onClick={() => { setSelectedRequest(alert); setShowModal(true) }}
-                    className="px-4 py-2.5 bg-white border border-slate-200 hover:border-rose-300 text-slate-700 rounded-xl text-sm font-medium transition-all"
-                  >
-                    Details
-                  </button>
-                  <button
-                    onClick={() => handleAccept(alert.id)}
-                    disabled={loading}
-                    className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white rounded-xl font-medium shadow-md shadow-red-100 transition-all disabled:opacity-50"
-                  >
-                    Accept
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Details Modal */}
-      <DetailsModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        type="request"
-        data={selectedRequest}
-        onAccept={handleAccept}
-        loading={loading}
+      {/* Booking Modal */}
+      <BookAppointmentModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        bloodBank={selectedBank}
+        onBookingComplete={() => setToast({ type: 'success', message: 'Appointment booked successfully!' })}
       />
     </div>
   )
 }
+
 
 // History Section
 const History = () => {
@@ -663,6 +715,8 @@ const Nearby = () => {
   const [modalType, setModalType] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState(null)
+  const [showBookingModal, setShowBookingModal] = useState(false)
+  const [selectedBank, setSelectedBank] = useState(null)
 
   const formatDistance = (meters) => {
     if (!meters) return ''
@@ -696,6 +750,11 @@ const Nearby = () => {
     }
   }
 
+  const openBooking = (bank) => {
+    setSelectedBank(bank)
+    setShowBookingModal(true)
+  }
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500"></div></div>
 
   return (
@@ -708,20 +767,20 @@ const Nearby = () => {
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       {/* Tabs */}
-      <div className="flex gap-4 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
+      <div className="flex gap-2 sm:gap-4 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm overflow-x-auto">
         <button
           onClick={() => setActiveTab('campaigns')}
-          className={`px-6 py-2.5 rounded-lg transition-all duration-300 font-medium text-sm flex items-center gap-2 ${activeTab === 'campaigns' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
+          className={`px-4 sm:px-6 py-2.5 rounded-lg transition-all duration-300 font-medium text-sm flex items-center gap-2 whitespace-nowrap ${activeTab === 'campaigns' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
         >
           <Calendar className="w-4 h-4" />
-          Campaigns ({data.campaigns.length})
+          <span className="hidden sm:inline">Campaigns</span> ({data.campaigns.length})
         </button>
         <button
           onClick={() => setActiveTab('bloodbanks')}
-          className={`px-6 py-2.5 rounded-lg transition-all duration-300 font-medium text-sm flex items-center gap-2 ${activeTab === 'bloodbanks' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
+          className={`px-4 sm:px-6 py-2.5 rounded-lg transition-all duration-300 font-medium text-sm flex items-center gap-2 whitespace-nowrap ${activeTab === 'bloodbanks' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
         >
           <Building2 className="w-4 h-4" />
-          Blood Banks ({data.bloodBanks.length})
+          <span className="hidden sm:inline">Blood Banks</span> ({data.bloodBanks.length})
         </button>
       </div>
 
@@ -745,7 +804,7 @@ const Nearby = () => {
                       <Calendar className="w-7 h-7 text-slate-700" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="text-lg font-bold text-slate-800">{campaign.title}</span>
                         {campaign.distance && (
                           <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
@@ -768,7 +827,7 @@ const Nearby = () => {
                       className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 border border-slate-200"
                     >
                       <MapPin className="w-4 h-4" />
-                      Directions
+                      <span className="hidden sm:inline">Directions</span>
                     </button>
                     <button
                       onClick={() => openDetails(campaign, 'campaign')}
@@ -795,13 +854,13 @@ const Nearby = () => {
           <div className="grid gap-4">
             {data.bloodBanks.map((bank) => (
               <div key={bank.id} className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
                       <Building2 className="w-7 h-7 text-slate-700" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         <span className="text-lg font-bold text-slate-800">{bank.name}</span>
                         {bank.distance && (
                           <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
@@ -811,33 +870,41 @@ const Nearby = () => {
                       </div>
                       <p className="text-slate-500 text-sm mb-2">{bank.address}</p>
                       {/* Stock Preview */}
-                      {bank.stock && bank.stock.length > 0 && (
+                      {bank.stock && Object.keys(bank.stock).length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {bank.stock.slice(0, 4).map(s => (
-                            <span key={s.blood_group} className={`px-2 py-0.5 rounded text-xs font-medium border ${s.units > 0 ? 'bg-slate-50 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
-                              {s.blood_group}: {s.units}
+                          {Object.entries(bank.stock).slice(0, 4).map(([group, units]) => (
+                            <span key={group} className={`px-2 py-0.5 rounded text-xs font-medium border ${units > 0 ? 'bg-slate-50 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                              {group}: {units}
                             </span>
                           ))}
-                          {bank.stock.length > 4 && (
-                            <span className="px-2 py-0.5 rounded text-xs text-slate-400">+{bank.stock.length - 4} more</span>
+                          {Object.keys(bank.stock).length > 4 && (
+                            <span className="px-2 py-0.5 rounded text-xs text-slate-400">+{Object.keys(bank.stock).length - 4} more</span>
                           )}
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => openDirections(bank)}
                       className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 border border-slate-200"
                     >
                       <MapPin className="w-4 h-4" />
-                      Directions
+                      <span className="hidden sm:inline">Directions</span>
                     </button>
                     <button
                       onClick={() => openDetails(bank, 'bloodbank')}
-                      className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all"
+                      className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all"
                     >
-                      View Details
+                      Details
+                    </button>
+                    <button
+                      onClick={() => openBooking(bank)}
+                      className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-all flex items-center gap-1.5 shadow-sm"
+                    >
+                      <CalendarPlus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Book Appointment</span>
+                      <span className="sm:hidden">Book</span>
                     </button>
                   </div>
                 </div>
@@ -854,7 +921,16 @@ const Nearby = () => {
         type={modalType}
         data={selectedItem}
       />
+
+      {/* Booking Modal */}
+      <BookAppointmentModal
+        isOpen={showBookingModal}
+        onClose={() => setShowBookingModal(false)}
+        bloodBank={selectedBank}
+        onBookingComplete={() => setToast({ type: 'success', message: 'Appointment booked successfully!' })}
+      />
     </div>
+
   )
 }
 
@@ -868,7 +944,8 @@ const Profile = () => {
     blood_group: '',
     address: '',
     latitude: '',
-    longitude: ''
+    longitude: '',
+    profile_image_url: ''
   })
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -889,8 +966,9 @@ const Profile = () => {
           gender: response.data.gender || '',
           blood_group: response.data.blood_group || '',
           address: response.data.address || '',
-          latitude: response.data.latitude || '',
-          longitude: response.data.longitude || ''
+          latitude: response.data.lat || '',
+          longitude: response.data.lng || '',
+          profile_image_url: response.data.profile_image_url || ''
         })
       } catch (error) {
         console.log('Failed to fetch profile')
@@ -898,6 +976,7 @@ const Profile = () => {
     }
     fetchProfile()
   }, [])
+
 
   const handleLocationChange = (coords) => {
     setFormData(prev => ({
@@ -1033,6 +1112,21 @@ const Profile = () => {
 
         {/* Right Column */}
         <div className="space-y-6">
+          {/* Profile Picture */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h3 className="font-bold text-slate-800 mb-4 text-center">Profile Picture</h3>
+            <div className="flex justify-center">
+              <ImageUpload
+                value={formData.profile_image_url}
+                onChange={(url) => setFormData({ ...formData, profile_image_url: url })}
+                folder="profiles"
+                size="lg"
+                shape="circle"
+              />
+            </div>
+          </div>
+
+          {/* Account Actions */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm sticky top-6">
             <h3 className="font-bold text-slate-800 mb-4">Account Actions</h3>
             <div className="space-y-3">
@@ -1055,6 +1149,7 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
 
       <Modal
         isOpen={showPasswordModal}

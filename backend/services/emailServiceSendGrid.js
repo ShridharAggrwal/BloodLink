@@ -174,10 +174,79 @@ const sendPasswordResetEmail = async (email, resetToken, name) => {
   }
 };
 
+/**
+ * Send appointment booking notification to blood bank
+ */
+const sendAppointmentBookingEmail = async (email, appointmentDetails) => {
+  const { bankName, userName, userEmail, userPhone, bloodGroup, appointmentDate, appointmentTime, notes } = appointmentDetails;
+  
+  const formattedDate = new Date(appointmentDate).toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  const msg = {
+    to: email,
+    from: process.env.EMAIL_FROM || 'noreply@yourdomain.com',
+    subject: `New Appointment Booking - ${userName}`,
+    text: `New appointment booking at ${bankName}.\n\nDonor: ${userName}\nEmail: ${userEmail}\nPhone: ${userPhone || 'Not provided'}\nBlood Group: ${bloodGroup}\nDate: ${formattedDate}\nTime: ${appointmentTime}\nNotes: ${notes || 'None'}\n\nPlease log in to your dashboard to confirm this appointment.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 20px; border-radius: 12px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #dc2626; margin: 0; font-size: 24px;">🩸 New Appointment Booking</h1>
+        </div>
+        
+        <div style="background: white; padding: 24px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <p style="color: #475569; margin: 0 0 16px;">You have received a new blood donation appointment request at <strong>${bankName}</strong>.</p>
+          
+          <div style="background: #fef2f2; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h3 style="color: #dc2626; margin: 0 0 12px; font-size: 14px; text-transform: uppercase;">Donor Information</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding: 4px 0; color: #64748b;">Name:</td><td style="padding: 4px 0; color: #1e293b; font-weight: 500;">${userName}</td></tr>
+              <tr><td style="padding: 4px 0; color: #64748b;">Email:</td><td style="padding: 4px 0; color: #1e293b;">${userEmail}</td></tr>
+              <tr><td style="padding: 4px 0; color: #64748b;">Phone:</td><td style="padding: 4px 0; color: #1e293b;">${userPhone || 'Not provided'}</td></tr>
+              <tr><td style="padding: 4px 0; color: #64748b;">Blood Group:</td><td style="padding: 4px 0; color: #dc2626; font-weight: bold; font-size: 18px;">${bloodGroup}</td></tr>
+            </table>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h3 style="color: #1e293b; margin: 0 0 12px; font-size: 14px; text-transform: uppercase;">Appointment Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding: 4px 0; color: #64748b;">Date:</td><td style="padding: 4px 0; color: #1e293b; font-weight: 500;">${formattedDate}</td></tr>
+              <tr><td style="padding: 4px 0; color: #64748b;">Time:</td><td style="padding: 4px 0; color: #1e293b; font-weight: 500;">${appointmentTime}</td></tr>
+              ${notes ? `<tr><td style="padding: 4px 0; color: #64748b;">Notes:</td><td style="padding: 4px 0; color: #1e293b;">${notes}</td></tr>` : ''}
+            </table>
+          </div>
+          
+          <p style="color: #64748b; margin: 16px 0 0; font-size: 14px;">
+            Please log in to your Blood Bank dashboard to confirm or manage this appointment.
+          </p>
+        </div>
+        
+        <p style="color: #94a3b8; font-size: 12px; text-align: center; margin-top: 20px;">
+          This is an automated message from BloodLink.
+        </p>
+      </div>
+    `,
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log('✅ Appointment booking email sent to:', email);
+  } catch (error) {
+    console.error('❌ Failed to send appointment booking email to:', email);
+    console.error('Error details:', error.response?.body || error.message);
+    throw new Error('Failed to send appointment booking email');
+  }
+};
+
 module.exports = {
   sendVerificationEmail,
   sendSignupTokenEmail,
   sendBloodRequestAlert,
   sendPasswordResetEmail,
+  sendAppointmentBookingEmail,
 };
 

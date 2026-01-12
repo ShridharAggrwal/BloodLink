@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/db');
 const auth = require('../middleware/auth');
 const { sendBloodRequestAlert } = require('../services/socketService');
+const { verifyPrescription } = require('../services/geminiService');
 
 // Haversine formula to calculate distance in meters
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
@@ -16,10 +17,29 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
+// Verify prescription image with AI
+router.post('/verify-prescription', auth, async (req, res) => {
+  try {
+    const { imageBase64, mimeType } = req.body;
+
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'Image data is required' });
+    }
+
+    const result = await verifyPrescription(imageBase64, mimeType || 'image/jpeg');
+
+    res.json(result);
+  } catch (error) {
+    console.error('Prescription verification error:', error);
+    res.status(500).json({ error: 'Failed to verify prescription' });
+  }
+});
+
+
 // Create blood request
 router.post('/', auth, async (req, res) => {
   try {
-    const { blood_group, units_needed, address, latitude, longitude } = req.body;
+    const { blood_group, units_needed, address, latitude, longitude, prescription_image_url } = req.body;
     const { id, role } = req.user;
 
     // Validate required fields
@@ -37,15 +57,16 @@ router.post('/', auth, async (req, res) => {
     // Determine requester type
     let requesterType = role === 'user' ? 'user' : role;
 
-    // Insert blood request
+    // Insert blood request with prescription image
     const result = await pool.query(
-      `INSERT INTO blood_requests (requester_id, requester_type, blood_group, units_needed, latitude, longitude, address, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+      `INSERT INTO blood_requests (requester_id, requester_type, blood_group, units_needed, latitude, longitude, address, prescription_image_url, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
        RETURNING *`,
-      [id, requesterType, blood_group, units_needed || 1, finalLatitude, finalLongitude, address]
+      [id, requesterType, blood_group, units_needed || 1, finalLatitude, finalLongitude, address, prescription_image_url || null]
     );
 
     const request = result.rows[0];
+
 
     let allRoomIds = [];
     let locationWarning = null;
