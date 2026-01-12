@@ -108,11 +108,30 @@ router.get('/history', auth, roleCheck('user'), async (req, res) => {
       [req.user.id]
     );
 
-    // Get blood requests made
+    // Get blood requests made - with accepter details
     const requests = await pool.query(
-      `SELECT * FROM blood_requests 
-       WHERE requester_id = $1 AND requester_type = 'user'
-       ORDER BY created_at DESC`,
+      `SELECT br.*,
+              CASE
+                WHEN br.accepted_by_type = 'user' THEN (SELECT name FROM users WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'ngo' THEN (SELECT name FROM ngos WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT name FROM blood_banks WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'admin' THEN (SELECT name FROM admins WHERE id = br.accepted_by)
+              END as accepter_name,
+              CASE
+                WHEN br.accepted_by_type = 'user' THEN (SELECT phone FROM users WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'ngo' THEN (SELECT contact_info FROM ngos WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT contact_info FROM blood_banks WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'admin' THEN NULL
+              END as accepter_contact,
+              CASE
+                WHEN br.accepted_by_type = 'user' THEN (SELECT email FROM users WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'ngo' THEN (SELECT email FROM ngos WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'blood_bank' THEN (SELECT email FROM blood_banks WHERE id = br.accepted_by)
+                WHEN br.accepted_by_type = 'admin' THEN (SELECT email FROM admins WHERE id = br.accepted_by)
+              END as accepter_email
+       FROM blood_requests br
+       WHERE br.requester_id = $1 AND br.requester_type = 'user'
+       ORDER BY br.created_at DESC`,
       [req.user.id]
     );
 

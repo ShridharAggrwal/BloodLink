@@ -465,27 +465,79 @@ const DonateBlood = () => {
 }
 
 
-// History Section
+// History Section - matching Admin/Blood Bank/NGO portal structure
 const History = () => {
-  const [history, setHistory] = useState({ donations: [], requests: [] })
+  const { alerts } = useSocket()
+  const [activeTab, setActiveTab] = useState('myRequests')
+  const [myRequests, setMyRequests] = useState([])
+  const [myAccepted, setMyAccepted] = useState([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('donations')
   const [toast, setToast] = useState(null)
-
+  const [cancelModal, setCancelModal] = useState({ open: false, requestId: null, reason: '' })
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const response = await api.get('/users/history')
-        setHistory(response.data)
-      } catch (error) {
-        console.log('Failed to fetch history')
-      } finally {
-        setLoading(false)
-      }
+    fetchData()
+  }, [alerts])
+
+  const fetchData = async () => {
+    try {
+      const [requestsRes, acceptedRes] = await Promise.all([
+        api.get('/blood-requests/my-requests'),
+        api.get('/blood-requests/my-accepted')
+      ])
+      setMyRequests(requestsRes.data)
+      setMyAccepted(acceptedRes.data)
+    } catch (error) {
+      console.log('Failed to fetch history')
+    } finally {
+      setLoading(false)
     }
-    fetchHistory()
-  }, [])
+  }
+
+  const handleConfirmFulfilled = async (requestId) => {
+    try {
+      await api.put(`/blood-requests/${requestId}/confirm-fulfilled`)
+      setToast({ type: 'success', message: 'Request marked as fulfilled!' })
+      fetchData()
+    } catch (error) {
+      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to confirm' })
+    }
+  }
+
+  const handleReassign = async (requestId) => {
+    try {
+      await api.put(`/blood-requests/${requestId}/report-unresponsive`)
+      setToast({ type: 'success', message: 'Request is now available to others' })
+      fetchData()
+    } catch (error) {
+      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to reassign' })
+    }
+  }
+
+  const handleCancelRequest = async (requestId) => {
+    try {
+      await api.put(`/blood-requests/${requestId}/cancel`)
+      setToast({ type: 'success', message: 'Request cancelled' })
+      fetchData()
+    } catch (error) {
+      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to cancel' })
+    }
+  }
+
+  const handleCancelAcceptance = async () => {
+    if (!cancelModal.reason.trim()) {
+      setToast({ type: 'error', message: 'Please provide a reason for cancellation' })
+      return
+    }
+    try {
+      await api.put(`/blood-requests/${cancelModal.requestId}/cancel-accept`, { reason: cancelModal.reason })
+      setToast({ type: 'success', message: 'Acceptance cancelled' })
+      setCancelModal({ open: false, requestId: null, reason: '' })
+      fetchData()
+    } catch (error) {
+      setToast({ type: 'error', message: error.response?.data?.error || 'Failed to cancel' })
+    }
+  }
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-rose-500"></div></div>
 
@@ -493,64 +545,39 @@ const History = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-slate-800 mb-2">History</h1>
-        <p className="text-slate-500">View your donation and request history</p>
+        <p className="text-slate-500">Track your blood requests and acceptances</p>
       </div>
 
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
-      <div className="flex gap-4 p-1 bg-white border border-slate-200 rounded-xl w-fit shadow-sm">
-        <button
-          onClick={() => setActiveTab('donations')}
-          className={`px-6 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${activeTab === 'donations' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
-        >
-          Donations ({history.donations.length})
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-200 pb-2">
+        <button onClick={() => setActiveTab('myRequests')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'myRequests' ? 'bg-rose-100 text-rose-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+          My Requests ({myRequests.length})
         </button>
-        <button
-          onClick={() => setActiveTab('requests')}
-          className={`px-6 py-2 rounded-lg transition-all duration-300 font-medium text-sm ${activeTab === 'requests' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
-        >
-          Requests ({history.requests.length})
+        <button onClick={() => setActiveTab('myAccepted')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'myAccepted' ? 'bg-rose-100 text-rose-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+          Requests I Accepted ({myAccepted.length})
         </button>
       </div>
 
-      <div className="space-y-4">
-        {activeTab === 'donations' ? (
-          history.donations.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">No donations yet</div>
+      {/* My Requests Tab */}
+      {activeTab === 'myRequests' && (
+        <div className="space-y-4">
+          {myRequests.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No requests created yet</div>
           ) : (
-            history.donations.map((donation) => (
-              <div key={donation.id} className="bg-white border border-slate-200 rounded-2xl p-6 flex items-center justify-between shadow-sm">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xl font-bold text-rose-600">{donation.blood_group}</span>
-                    <span className="text-slate-500 text-sm">• {donation.units} unit(s)</span>
-                  </div>
-                  <p className="text-sm text-slate-500">{new Date(donation.donated_at).toLocaleDateString()}</p>
-                </div>
-                <div className="px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-200 text-xs font-medium flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Completed
-                </div>
-              </div>
-            ))
-          )
-        ) : (
-          history.requests.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">No requests yet</div>
-          ) : (
-            history.requests.map((request) => (
+            myRequests.map((request) => (
               <div key={request.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white font-bold shadow-lg shadow-red-200">
-                      {request.blood_group}
-                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white font-bold">{request.blood_group}</div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800">{request.units_needed} Unit(s) Needed</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${request.status === 'active' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                          request.status === 'accepted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                            request.status === 'fulfilled' ? 'bg-green-50 text-green-700 border-green-200' :
-                              'bg-slate-100 text-slate-500 border-slate-200'
+                        <span className="font-bold text-slate-800">{request.units_needed} Unit(s)</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${request.status === 'fulfilled' ? 'bg-green-100 text-green-700' :
+                            request.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                              request.status === 'cancelled' ? 'bg-slate-100 text-slate-500' :
+                                'bg-amber-100 text-amber-700'
                           }`}>
                           {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                         </span>
@@ -559,72 +586,108 @@ const History = () => {
                       <p className="text-xs text-slate-400">{new Date(request.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
+                  {/* Cancel button for active requests */}
+                  {(request.status === 'active' || request.status === 'accepted') && (
+                    <button
+                      onClick={() => handleCancelRequest(request.id)}
+                      className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      Cancel Request
+                    </button>
+                  )}
                 </div>
 
-                {/* Accepted status - show accepter info and actions */}
                 {request.status === 'accepted' && request.accepter_name && (
                   <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                    <p className="text-sm font-medium text-blue-800 mb-1">
-                      Accepted by: {request.accepter_name}
-                    </p>
-                    {request.accepter_contact && (
-                      <p className="text-xs text-blue-600">Contact: {request.accepter_contact}</p>
-                    )}
+                    <p className="text-sm font-medium text-blue-800">Accepted by: {request.accepter_name}</p>
+                    {request.accepter_contact && <p className="text-xs text-blue-600">Contact: {request.accepter_contact}</p>}
+                    {request.accepter_email && <p className="text-xs text-blue-600">Email: {request.accepter_email}</p>}
                     <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={async () => {
-                          try {
-                            await api.put(`/blood-requests/${request.id}/confirm-fulfilled`)
-                            setToast({ type: 'success', message: 'Request marked as fulfilled!' })
-                            // Refresh
-                            const response = await api.get('/users/history')
-                            setHistory(response.data)
-                          } catch (error) {
-                            setToast({ type: 'error', message: error.response?.data?.error || 'Failed to confirm' })
-                          }
-                        }}
-                        className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-                      >
+                      <button onClick={() => handleConfirmFulfilled(request.id)} className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium">
                         ✓ Blood Received
                       </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await api.put(`/blood-requests/${request.id}/report-unresponsive`)
-                            setToast({ type: 'success', message: 'Request is now available to others' })
-                            const response = await api.get('/users/history')
-                            setHistory(response.data)
-                          } catch (error) {
-                            setToast({ type: 'error', message: error.response?.data?.error || 'Failed to report' })
-                          }
-                        }}
-                        className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
-                      >
-                        Not Responding
+                      <button onClick={() => handleReassign(request.id)} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium">
+                        Reassign
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Show last cancellation reason if request was cancelled by accepter */}
                 {request.status === 'active' && request.last_cancel_reason && (
                   <div className="mt-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
-                    <p className="text-sm font-medium text-amber-800 mb-1">
-                      ⚠️ {request.last_cancelled_by_name || 'Previous accepter'} cancelled their acceptance
-                    </p>
+                    <p className="text-sm font-medium text-amber-800">⚠️ {request.last_cancelled_by_name || 'Previous accepter'} cancelled their acceptance</p>
                     <p className="text-xs text-amber-600">Reason: {request.last_cancel_reason}</p>
                     <p className="text-xs text-amber-500 mt-1">Your request is now available to others again.</p>
                   </div>
                 )}
               </div>
             ))
-          )
-        )}
+          )}
+        </div>
+      )}
 
-      </div>
+      {/* My Accepted Tab */}
+      {activeTab === 'myAccepted' && (
+        <div className="space-y-4">
+          {myAccepted.length === 0 ? (
+            <div className="text-center py-12 text-slate-400">No requests accepted yet</div>
+          ) : (
+            myAccepted.map((request) => (
+              <div key={request.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">{request.blood_group}</div>
+                    <div>
+                      <span className="font-bold text-slate-800">{request.units_needed} Unit(s) - {request.requester_name}</span>
+                      <p className="text-sm text-slate-500">{request.address}</p>
+                      {request.requester_contact && <p className="text-xs text-blue-600">Contact: {request.requester_contact}</p>}
+                    </div>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${request.status === 'fulfilled' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                    {request.status === 'fulfilled' ? 'Completed' : 'Pending'}
+                  </span>
+                </div>
+
+                {request.status === 'accepted' && (
+                  <button
+                    onClick={() => setCancelModal({ open: true, requestId: request.id, reason: '' })}
+                    className="mt-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium"
+                  >
+                    Cancel My Acceptance
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Cancel Modal */}
+      {cancelModal.open && (
+        <Modal isOpen={true} onClose={() => setCancelModal({ open: false, requestId: null, reason: '' })} title="Cancel Acceptance">
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">Please provide a reason for cancelling. This will be shown to the requester.</p>
+            <textarea
+              value={cancelModal.reason}
+              onChange={(e) => setCancelModal({ ...cancelModal, reason: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500/20 resize-none h-24"
+              placeholder="Enter reason for cancellation..."
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setCancelModal({ open: false, requestId: null, reason: '' })} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium">
+                Keep Acceptance
+              </button>
+              <button onClick={handleCancelAcceptance} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium">
+                Cancel Acceptance
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
+
 
 // Alerts Section
 const Alerts = () => {

@@ -827,10 +827,10 @@ const NGOAlerts = () => {
       ) : (
         <div className="grid gap-4">
           {allAlerts.map((alert) => (
-            <div key={alert.id} className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-lg hover:border-rose-200 transition-all duration-300">
+            <div key={alert.id} className={`bg-white border rounded-2xl p-6 hover:shadow-lg transition-all duration-300 ${alert.is_accepted ? 'border-amber-200 hover:border-amber-300' : 'border-slate-200 hover:border-rose-200'}`}>
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-red-200">
+                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${alert.is_accepted ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-orange-200' : 'bg-gradient-to-br from-rose-500 to-red-600 shadow-red-200'}`}>
                     <span className="text-xl font-bold text-white">{alert.blood_group}</span>
                   </div>
                   <div className="flex-1">
@@ -842,6 +842,11 @@ const NGOAlerts = () => {
                       {alert.distance && (
                         <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium">
                           {formatDistance(alert.distance)} away
+                        </span>
+                      )}
+                      {alert.is_accepted && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                          Pending
                         </span>
                       )}
                     </div>
@@ -880,13 +885,23 @@ const NGOAlerts = () => {
                   </button>
                   <button
                     onClick={() => handleAccept(alert.id)}
-                    disabled={accepting}
-                    className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white rounded-xl font-medium shadow-md shadow-red-100 transition-all disabled:opacity-50"
+                    disabled={accepting || alert.is_accepted}
+                    className={`px-5 py-2.5 rounded-xl font-medium shadow-md transition-all disabled:opacity-50 ${alert.is_accepted
+                        ? 'bg-slate-200 text-slate-500 shadow-none cursor-not-allowed'
+                        : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white shadow-red-100'
+                      }`}
                   >
-                    Accept
+                    {alert.is_accepted ? 'Accepted' : 'Accept'}
                   </button>
                 </div>
               </div>
+
+              {/* Availability message for accepted requests */}
+              {alert.is_accepted && (
+                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-700">
+                  ⏳ {alert.availability_message || 'This request has been accepted but not yet fulfilled. It may become available again if help is not completed.'}
+                </div>
+              )}
             </div>
           ))}
         </div>
