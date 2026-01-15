@@ -10,7 +10,16 @@ const server = http.createServer(app);
 // Setup Socket.io with Render compatibility
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'https://blood-link-mu.vercel.app' || 'http://localhost:5173' || 'https://bharakt.in' || 'https://www.bharakt.in',
+    origin: [
+      process.env.FRONTEND_URL,
+      'https://blood-link-mu.vercel.app',
+      'http://localhost:5173',
+      'https://bharakt.in',
+      'https://www.bharakt.in',
+      'https://admin.bharakt.in',
+      'https://ngo.bharakt.in',
+      'https://bloodbank.bharakt.in'
+    ].filter(Boolean),
     methods: ['GET', 'POST'],
     credentials: true
   },
