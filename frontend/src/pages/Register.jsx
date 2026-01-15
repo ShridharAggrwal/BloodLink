@@ -27,6 +27,7 @@ const Register = () => {
     phone: "",
     gender: "",
     blood_group: "",
+    dob: "",
     address: "",
     latitude: "",
     longitude: "",
@@ -255,6 +256,19 @@ const Register = () => {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Date of Birth */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-slate-700 ml-1">Date of Birth</label>
+                <input
+                  type="date"
+                  name="dob"
+                  value={formData.dob}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                  required
+                />
               </div>
             </div>
 

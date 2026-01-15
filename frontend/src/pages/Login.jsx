@@ -144,7 +144,7 @@ const Login = () => {
             <div className="text-center mb-2 -mt-4">
               <span className="inline-block py-1 px-3 rounded-full bg-red-100 text-red-600 text-xs font-semibold tracking-wide uppercase">
                 {currentSubdomain === 'main'
-                  ? 'Donor Portal'
+                  ? 'User Portal'
                   : (currentSubdomain === 'blood_bank' ? 'Blood Bank' : currentSubdomain) + ' Portal'
                 }
               </span>

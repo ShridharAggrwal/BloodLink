@@ -12,6 +12,7 @@ const initDatabase = async () => {
         phone VARCHAR(20),
         gender VARCHAR(10),
         blood_group VARCHAR(5),
+        dob DATE,
         address TEXT,
         latitude DOUBLE PRECISION,
         longitude DOUBLE PRECISION,
