@@ -97,15 +97,18 @@ const Login = () => {
         className="relative z-10 w-full max-w-md"
       >
         {/* Back to Home */}
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-8 transition-colors group"
-        >
-          <div className="w-8 h-8 rounded-full bg-white/50 border border-slate-200 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all text-slate-500 group-hover:text-slate-700">
-            <ArrowLeft className="w-4 h-4" />
-          </div>
-          <span className="text-sm font-medium">Back to Home</span>
-        </Link>
+        {/* Back to Home - Only show on main domain */}
+        {currentSubdomain === 'main' && (
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-8 transition-colors group"
+          >
+            <div className="w-8 h-8 rounded-full bg-white/50 border border-slate-200 flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all text-slate-500 group-hover:text-slate-700">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-medium">Back to Home</span>
+          </Link>
+        )}
 
         {/* Login Card */}
         <div className="bg-white/80 backdrop-blur-xl border border-rose-100/50 rounded-[2.5rem] p-8 shadow-xl shadow-red-100/30">
@@ -134,34 +137,21 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Selection */}
             {/* Role Selection - Only show if on main domain */}
-            {currentSubdomain === 'main' && (
-              <div className="grid grid-cols-2 gap-2">
-                {roles.map((role) => (
-                  <button
-                    key={role.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, role: role.value })}
-                    className={cn(
-                      "py-2.5 px-3 rounded-xl text-xs font-medium transition-all duration-300 border",
-                      formData.role === role.value
-                        ? "bg-red-600 border-red-600 text-white shadow-md shadow-red-600/20"
-                        : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300"
-                    )}
-                  >
-                    {role.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Role Selection - REMOVED for Main Domain per user request */}
+            {/* If on main domain, we default to 'user' role and hide selector */}
 
             {/* Subdomain Title Indicator */}
-            {currentSubdomain !== 'main' && (
-              <div className="text-center mb-2 -mt-4">
-                <span className="inline-block py-1 px-3 rounded-full bg-red-100 text-red-600 text-xs font-semibold tracking-wide uppercase">
-                  {currentSubdomain === 'blood_bank' ? 'Blood Bank' : currentSubdomain} Portal
-                </span>
-              </div>
-            )}
+            <div className="text-center mb-2 -mt-4">
+              <span className="inline-block py-1 px-3 rounded-full bg-red-100 text-red-600 text-xs font-semibold tracking-wide uppercase">
+                {currentSubdomain === 'main'
+                  ? 'Donor Portal'
+                  : (currentSubdomain === 'blood_bank' ? 'Blood Bank' : currentSubdomain) + ' Portal'
+                }
+              </span>
+            </div>
+
+            {/* Subdomain Title Indicator */}
+
 
             <div className="space-y-4">
               <div className="space-y-2">
