@@ -432,102 +432,6 @@ function HeroSection() {
   );
 }
 
-function FeaturesSection() {
-  return (
-    <section className="py-20 bg-slate-50">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid lg:grid-cols-3 gap-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="lg:col-span-1"
-          >
-            <div className="bg-white rounded-[1.5rem] overflow-hidden card-shadow h-full border border-slate-100">
-              <div className="aspect-[4/3] relative">
-                <img
-                  src="/images/blood-donation.jpg"
-                  alt="Blood donation"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute bottom-4 left-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-                    <HeartHandshake className="w-6 h-6 text-red-600" />
-                  </div>
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Compassion-Driven Support</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  We provide essential aid to families in need with care, respect, and dignity.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="lg:col-span-1"
-          >
-            <div className="bg-white rounded-[1.5rem] p-6 card-shadow h-full flex flex-col border border-slate-100">
-              <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mb-5">
-                <ShieldCheck className="w-6 h-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">Transparent & Trusted</h3>
-              <p className="text-sm text-slate-500 leading-relaxed mb-6">
-                Every donation is used responsibly, with clear reporting and real impact updates.
-              </p>
-              <div className="mt-auto">
-                <div className="aspect-[4/3] rounded-2xl overflow-hidden">
-                  <img
-                    src="/images/medical-care.jpg"
-                    alt="Medical care"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-1 flex flex-col gap-6"
-          >
-            <div className="bg-white rounded-[1.5rem] p-6 card-shadow border border-slate-100">
-              <h4 className="text-sm font-semibold text-slate-900 mb-2">Community-Focused Programs</h4>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Our initiatives empower local communities through education, health support, and sustainable relief.
-              </p>
-            </div>
-
-            <div className="bg-slate-100 rounded-[1.5rem] overflow-hidden flex-1 relative">
-              <img
-                src="/images/community.jpg"
-                alt="Community support"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-4 left-4 right-4">
-                <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Droplets className="w-4 h-4 text-red-600" />
-                    <span className="text-xs font-medium text-slate-500">Bharakt</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function ImpactSection() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -562,20 +466,14 @@ function ImpactSection() {
                 {
                   icon: Heart,
                   title: "Support Life-Saving Healthcare",
-                  description: "Provide medical checkups, essential medicines, and emergency treatments for families who cannot afford healthcare.",
-                  image: "/images/healthcare-1.jpg"
+                  description: "Provide medical checkups when campaigns are organized.",
+                  image: "/images/blood-checkup.jpg"
                 },
                 {
                   icon: HeartHandshake,
                   title: "Compassion-Driven Support",
-                  description: "Provide essential monthly food packs to families struggling with hunger. Your support ensures they receive nutritious meals and daily comfort.",
+                  description: "Provide a system for blood donation and blood bank management.",
                   image: "/images/compassion.jpg"
-                },
-                {
-                  icon: Users,
-                  title: "Give Children a Chance to Learn",
-                  description: "Help underprivileged children access quality education through books, uniforms, and school supplies. Your contribution shapes their future.",
-                  image: "/images/education.jpg"
                 }
               ].map((item, index) => (
                 <motion.div
@@ -625,7 +523,7 @@ function ImpactSection() {
               <div className="bg-white rounded-2xl overflow-hidden card-shadow">
                 <div className="aspect-square sm:aspect-square">
                   <img
-                    src="/images/healthcare-support.jpg"
+                    src="/images/person.jpeg"
                     alt="Healthcare support"
                     className="w-full h-full object-cover"
                   />
@@ -654,7 +552,7 @@ function ImpactSection() {
                 </div>
                 <h4 className="font-semibold text-slate-900 mb-2 text-sm sm:text-base">Vision Statement</h4>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  We strive to create a future where every child has the opportunity to learn, every family has access to basic needs, and every community can grow with hope, security.
+                  We strive to create a future where every individual can access life-saving blood during emergencies via our tech platform, and is empowered to pay it forward by helping others.
                 </p>
               </div>
               <div className="bg-white rounded-2xl p-4 sm:p-5 card-shadow border border-slate-100">
@@ -663,7 +561,7 @@ function ImpactSection() {
                 </div>
                 <h4 className="font-semibold text-slate-900 mb-2 text-sm sm:text-base">Mission Statement</h4>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  We are dedicated to supporting vulnerable communities by providing food, education, healthcare, and essential resources with compassion and dignity.
+                  We are dedicated to providing a robust tech platform where everyone can get blood while in emergency, ensuring timely help and connecting donors with those in need.
                 </p>
               </div>
             </div>
@@ -1102,7 +1000,6 @@ export default function Home() {
     <div className="min-h-screen bg-slate-50">
       <Header />
       <HeroSection />
-      <FeaturesSection />
       <ImpactSection />
       <BloodTypesSection />
       <HowItWorksSection />
