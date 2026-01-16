@@ -129,6 +129,20 @@ const runAllMigrations = async () => {
     `);
     console.log('  ✅ Added last_cancelled_by_name to blood_requests\n');
 
+    // Migration 6: Add Date of Birth (DOB) to users
+    console.log('🎂 Migration 6: Adding DOB to users...');
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS dob DATE;
+    `);
+    console.log('  ✅ Added dob column to users table');
+    
+    await pool.query(`
+      UPDATE users 
+      SET dob = CURRENT_DATE - INTERVAL '21 years' 
+      WHERE dob IS NULL;
+    `);
+    console.log('  ✅ Backfilled existing users with default DOB (21 years old)\n');
+
 
     console.log('═══════════════════════════════════════════════════');
     console.log('🎉 All migrations completed successfully!');

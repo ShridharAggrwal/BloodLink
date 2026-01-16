@@ -21,7 +21,7 @@ const haversineDistance = (lat1, lon1, lat2, lon2) => {
 router.get('/profile', auth, roleCheck('user'), async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, name, email, phone, gender, blood_group, address, latitude as lat, longitude as lng, profile_image_url
+      `SELECT id, name, email, phone, gender, blood_group, dob, EXTRACT(YEAR FROM AGE(dob))::int as age, address, latitude as lat, longitude as lng, profile_image_url
        FROM users WHERE id = $1`,
       [req.user.id]
     );
@@ -40,7 +40,7 @@ router.get('/profile', auth, roleCheck('user'), async (req, res) => {
 // Update profile
 router.put('/profile', auth, roleCheck('user'), async (req, res) => {
   try {
-    const { name, phone, gender, blood_group, address, latitude, longitude, profile_image_url } = req.body;
+    const { name, phone, gender, blood_group, dob, address, latitude, longitude, profile_image_url } = req.body;
 
     const result = await pool.query(
       `UPDATE users 
@@ -48,13 +48,14 @@ router.put('/profile', auth, roleCheck('user'), async (req, res) => {
            phone = COALESCE($2, phone),
            gender = COALESCE($3, gender),
            blood_group = COALESCE($4, blood_group),
-           address = COALESCE($5, address),
-           latitude = COALESCE($6, latitude),
-           longitude = COALESCE($7, longitude),
-           profile_image_url = COALESCE($8, profile_image_url)
-       WHERE id = $9
-       RETURNING id, name, email, phone, gender, blood_group, address, latitude, longitude, profile_image_url`,
-      [name, phone, gender, blood_group, address, latitude, longitude, profile_image_url, req.user.id]
+           dob = COALESCE($5, dob),
+           address = COALESCE($6, address),
+           latitude = COALESCE($7, latitude),
+           longitude = COALESCE($8, longitude),
+           profile_image_url = COALESCE($9, profile_image_url)
+       WHERE id = $10
+       RETURNING id, name, email, phone, gender, blood_group, dob, EXTRACT(YEAR FROM AGE(dob))::int as age, address, latitude, longitude, profile_image_url`,
+      [name, phone, gender, blood_group, dob, address, latitude, longitude, profile_image_url, req.user.id]
     );
     res.json({ message: 'Profile updated', user: result.rows[0] });
   } catch (error) {

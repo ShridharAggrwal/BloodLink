@@ -6,7 +6,16 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'https://blood-link-mu.vercel.app',
+    'https://bharakt.in',
+    'https://www.bharakt.in',
+    'https://admin.bharakt.in',
+    'https://ngo.bharakt.in',
+    'https://bloodbank.bharakt.in'
+  ].filter(Boolean),
   credentials: true
 }));
 // Increase limit to 10MB for base64 image uploads (prescription verification)

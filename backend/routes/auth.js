@@ -9,7 +9,7 @@ const { sendVerificationEmail } = require('../services/emailServiceSendGrid');
 // Register User
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, phone, gender, blood_group, address, latitude, longitude } = req.body;
+    const { name, email, password, phone, gender, blood_group, dob, address, latitude, longitude } = req.body;
 
     // Check if email exists
     const existingUser = await pool.query(
@@ -36,10 +36,10 @@ router.post('/register', async (req, res) => {
 
     // Insert user
     const result = await pool.query(
-      `INSERT INTO users (name, email, password, phone, gender, blood_group, address, latitude, longitude)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO users (name, email, password, phone, gender, blood_group, dob, address, latitude, longitude)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id, name, email`,
-      [name, email, hashedPassword, phone, gender, blood_group, address, finalLatitude, finalLongitude]
+      [name, email, hashedPassword, phone, gender, blood_group, dob, address, finalLatitude, finalLongitude]
     );
 
     // Create verification token

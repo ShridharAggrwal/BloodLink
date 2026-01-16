@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { getSubdomain } from './utils/subdomain';
 import { useAuth } from './context/AuthContext'
 
 // Pages
@@ -48,6 +49,34 @@ function App() {
       case 'ngo': return '/ngo'
       case 'blood_bank': return '/blood-bank'
       default: return '/dashboard'
+    }
+  }
+
+  const subdomain = getSubdomain();
+  const location = useLocation();
+
+  // Subdomain Routing Guard
+  // If we are on a specific subdomain (e.g. admin.bharakt.in), we should:
+  // 1. Only allow access to that role's routes
+  // 2. Redirect '/' to '/login' or dashboard
+  if (subdomain !== 'main') {
+    // Prevent access to other portals
+    if (subdomain === 'admin' && (location.pathname.startsWith('/ngo') || location.pathname.startsWith('/blood-bank') || location.pathname.startsWith('/dashboard'))) {
+      return <Navigate to="/admin" replace />;
+    }
+    if (subdomain === 'ngo' && (location.pathname.startsWith('/admin') || location.pathname.startsWith('/blood-bank') || location.pathname.startsWith('/dashboard'))) {
+      return <Navigate to="/ngo" replace />;
+    }
+    if (subdomain === 'blood_bank' && (location.pathname.startsWith('/admin') || location.pathname.startsWith('/ngo') || location.pathname.startsWith('/dashboard'))) {
+      return <Navigate to="/blood-bank" replace />;
+    }
+
+    // Redirect root to login on subdomains
+    if (location.pathname === '/') {
+      // If logged in, go to dashboard, else login
+      // Note: getDashboardRoute() handles based on user role.
+      // Only if user matches subdomain?
+      return <Navigate to={user ? getDashboardRoute() : '/login'} replace />;
     }
   }
 

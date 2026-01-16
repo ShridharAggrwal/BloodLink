@@ -1213,6 +1213,7 @@ const Profile = () => {
     phone: '',
     gender: '',
     blood_group: '',
+    dob: '',
     address: '',
     latitude: '',
     longitude: '',
@@ -1236,6 +1237,7 @@ const Profile = () => {
           phone: response.data.phone || '',
           gender: response.data.gender || '',
           blood_group: response.data.blood_group || '',
+          dob: response.data.dob ? new Date(response.data.dob).toISOString().split('T')[0] : '',
           address: response.data.address || '',
           latitude: response.data.lat || '',
           longitude: response.data.lng || '',
@@ -1293,6 +1295,18 @@ const Profile = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const calculateAge = (dobString) => {
+    if (!dobString) return '';
+    const birthDate = new Date(dobString);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
   }
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
@@ -1358,6 +1372,24 @@ const Profile = () => {
                       <option key={bg} value={bg}>{bg}</option>
                     ))}
                   </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={formData.dob}
+                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-700">Age</label>
+                  <input
+                    type="text"
+                    value={calculateAge(formData.dob)}
+                    readOnly
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 font-medium cursor-not-allowed"
+                  />
                 </div>
               </div>
 
