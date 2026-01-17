@@ -17,8 +17,10 @@ import {
 import { Button } from "../components/ui/Button";
 import LocationPicker from "../components/common/LocationPicker";
 import Toast from "../components/common/Toast";
+import EligibilityCheck from "../components/common/EligibilityCheck";
 
 const Register = () => {
+  const [showEligibility, setShowEligibility] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -138,228 +140,249 @@ const Register = () => {
 
         {/* Register Card */}
         <div className="bg-white/80 backdrop-blur-xl border border-rose-100/50 rounded-[2.5rem] p-8 lg:p-10 shadow-xl shadow-red-100/30">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-600/30">
-              <Droplets className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-serif text-slate-900 mb-2">Join Bharakt</h1>
-            <p className="text-slate-500 text-sm">Create an account to save lives</p>
-          </div>
-
-          <AnimatePresence>
-            {error && (
+          <AnimatePresence mode="wait">
+            {showEligibility ? (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6 flex items-start gap-3"
+                key="eligibility"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
               >
-                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-600">{error}</p>
+                <EligibilityCheck onComplete={() => setShowEligibility(false)} />
               </motion.div>
-            )}
-            {success && (
+            ) : (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-green-50 border border-green-100 rounded-xl p-4 mb-6 flex items-start gap-3"
+                key="register-form"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                <Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-green-600">{success}</p>
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-600/30">
+                    <Droplets className="w-8 h-8 text-white" />
+                  </div>
+                  <h1 className="text-3xl font-serif text-slate-900 mb-2">Join Bharakt</h1>
+                  <p className="text-slate-500 text-sm">Create an account to save lives</p>
+                </div>
+
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6 flex items-start gap-3"
+                    >
+                      <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                      <p className="text-sm text-red-600">{error}</p>
+                    </motion.div>
+                  )}
+                  {success && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="bg-green-50 border border-green-100 rounded-xl p-4 mb-6 flex items-start gap-3"
+                    >
+                      <Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                      <p className="text-sm text-green-600">{success}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Name */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700 ml-1">Full Name</label>
+                      <div className="relative group">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
+                        <input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                          placeholder="Enter full name"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700 ml-1">Email Address</label>
+                      <div className="relative group">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                          placeholder="Enter email address"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Phone */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700 ml-1">Phone Number</label>
+                      <div className="relative group">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                          placeholder="Enter phone number"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    {/* Gender & Blood Group */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-700 ml-1">Gender</label>
+                        <select
+                          name="gender"
+                          value={formData.gender}
+                          onChange={handleChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                          required
+                        >
+                          <option value="">Select</option>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-slate-700 ml-1">Blood Group</label>
+                        <select
+                          name="blood_group"
+                          value={formData.blood_group}
+                          onChange={handleChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                          required
+                        >
+                          <option value="">Select</option>
+                          {bloodGroups.map((bg) => (
+                            <option key={bg} value={bg}>{bg}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Date of Birth */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700 ml-1">Date of Birth</label>
+                      <input
+                        type="date"
+                        name="dob"
+                        value={formData.dob}
+                        onChange={handleChange}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 ml-1">Address</label>
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300 resize-none"
+                      rows="2"
+                      placeholder="Enter your full address"
+                      required
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-medium text-slate-700 ml-1">Location</label>
+                    <p className="text-xs text-slate-500 ml-1">Required for blood matching - click on map or search</p>
+                    <LocationPicker
+                      value={formData.latitude && formData.longitude ? {
+                        lat: parseFloat(formData.latitude),
+                        lng: parseFloat(formData.longitude)
+                      } : null}
+                      onChange={handleLocationChange}
+                      showProfileButton={false}
+                      placeholder="Search for your location..."
+                      required
+                    />
+                  </div>
+
+                  {/* Passwords */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700 ml-1">Password</label>
+                      <div className="relative group">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
+                        <input
+                          type="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                          placeholder="Min 6 chars"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-slate-700 ml-1">Confirm Password</label>
+                      <div className="relative group">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
+                        <input
+                          type="password"
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
+                          placeholder="Confirm password"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-red-600 text-white hover:bg-red-700 rounded-xl h-12 text-base font-semibold shadow-lg shadow-red-600/20 transition-all duration-300 transform hover:scale-[1.02] mt-4"
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Creating Account...</span>
+                      </div>
+                    ) : (
+                      "Create Account"
+                    )}
+                  </Button>
+                </form>
+
+                <div className="mt-8 text-center">
+                  <p className="text-slate-500 text-sm">
+                    Already have an account?{" "}
+                    <Link to="/login" className="text-red-600 font-semibold hover:underline">
+                      Sign In
+                    </Link>
+                  </p>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Name */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-700 ml-1">Full Name</label>
-                <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
-                    placeholder="Enter full name"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Email */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-700 ml-1">Email Address</label>
-                <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
-                    placeholder="Enter email address"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Phone */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-700 ml-1">Phone Number</label>
-                <div className="relative group">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
-                    placeholder="Enter phone number"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Gender & Blood Group */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-700 ml-1">Gender</label>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
-                    required
-                  >
-                    <option value="">Select</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-700 ml-1">Blood Group</label>
-                  <select
-                    name="blood_group"
-                    value={formData.blood_group}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
-                    required
-                  >
-                    <option value="">Select</option>
-                    {bloodGroups.map((bg) => (
-                      <option key={bg} value={bg}>{bg}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Date of Birth */}
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-700 ml-1">Date of Birth</label>
-                <input
-                  type="date"
-                  name="dob"
-                  value={formData.dob}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Address */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-slate-700 ml-1">Address</label>
-              <textarea
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300 resize-none"
-                rows="2"
-                placeholder="Enter your full address"
-                required
-              />
-            </div>
-
-            {/* Location */}
-            <div className="space-y-3">
-              <label className="text-xs font-medium text-slate-700 ml-1">Location</label>
-              <p className="text-xs text-slate-500 ml-1">Required for blood matching - click on map or search</p>
-              <LocationPicker
-                value={formData.latitude && formData.longitude ? {
-                  lat: parseFloat(formData.latitude),
-                  lng: parseFloat(formData.longitude)
-                } : null}
-                onChange={handleLocationChange}
-                showProfileButton={false}
-                placeholder="Search for your location..."
-                required
-              />
-            </div>
-
-            {/* Passwords */}
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-700 ml-1">Password</label>
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
-                    placeholder="Min 6 chars"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-slate-700 ml-1">Confirm Password</label>
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-red-500 transition-colors" />
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-red-500/50 focus:bg-white focus:ring-2 focus:ring-red-500/10 transition-all duration-300"
-                    placeholder="Confirm password"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-red-600 text-white hover:bg-red-700 rounded-xl h-12 text-base font-semibold shadow-lg shadow-red-600/20 transition-all duration-300 transform hover:scale-[1.02] mt-4"
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Creating Account...</span>
-                </div>
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-8 text-center">
-            <p className="text-slate-500 text-sm">
-              Already have an account?{" "}
-              <Link to="/login" className="text-red-600 font-semibold hover:underline">
-                Sign In
-              </Link>
-            </p>
-          </div>
         </div>
       </motion.div>
     </div>

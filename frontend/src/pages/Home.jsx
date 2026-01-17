@@ -523,7 +523,7 @@ function ImpactSection() {
               <div className="bg-white rounded-2xl overflow-hidden card-shadow">
                 <div className="aspect-square sm:aspect-square">
                   <img
-                    src="/images/person.jpeg"
+                    src="/images/harish.png"
                     alt="Healthcare support"
                     className="w-full h-full object-cover"
                   />
